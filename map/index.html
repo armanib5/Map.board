@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BayPinned SJ &mdash; Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Libre+Franklin:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="vendor/markercluster/MarkerCluster.css">
+<link rel="stylesheet" href="vendor/markercluster/MarkerCluster.Default.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg"></div>
+<div class="page">
+  <div class="topbar">
+    <div class="logo">&#128204; BayPinned SJ</div>
+    <div class="note">Map component &mdash; standalone preview</div>
+  </div>
+
+  <section id="mapSec">
+    <div class="sh">
+      <h2 id="mapTitle">Downtown San Jose Map</h2>
+    </div>
+    <div class="cityrow" id="cityRow"></div>
+    <div class="mapnote" id="mapNote" style="display:none;"></div>
+
+    <div class="mapsearch">
+      <div class="msin">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dab870" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="msInput" type="text" placeholder="Search events, vendors, or places&hellip;" autocomplete="off">
+        <button class="msclear" id="msClear">&times;</button>
+      </div>
+      <div class="msresults" id="msResults"></div>
+    </div>
+
+    <div class="hoodrow" id="hoodRow"></div>
+    <div class="filtrow" id="filtRow"></div>
+
+    <div class="mframe">
+      <div class="mvp" id="mvp">
+        <div id="leafletMap"></div>
+
+        <div class="mapstring"></div>
+        <div class="mapflyerwrap" id="flyerWrap">
+          <div class="mapclip"></div>
+          <div class="mapflyer">
+            <button class="mfx" id="flyerClose">&times;</button>
+            <div id="flyerContent"></div>
+          </div>
+        </div>
+
+        <div class="mlg" id="mapLegend">
+          <h4>Map Key</h4>
+        </div>
+        <div class="mcomp">N</div>
+        <div class="mysink">
+          <button class="mbtn" id="myLoc" title="My Location">&#128205;</button>
+        </div>
+      </div>
+      <div class="mapctl">
+        <button class="mbtn" id="zIn" title="Zoom in">+</button>
+        <button class="mbtn" id="zOut" title="Zoom out">&minus;</button>
+        <button class="mbtn wide" id="zReset" title="Reset view">Reset View</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>BayPinned SJ &middot; Map component preview &middot; will be merged into the main site</footer>
+</div>
+
+<div class="detailov" id="detailOv">
+  <div class="detailpanel" id="detailPanel"></div>
+</div>
+
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="vendor/markercluster/leaflet.markercluster.js"></script>
+<script src="data/places.js?v=8"></script>
+<script src="js/map.js?v=8"></script>
+</body>
+</html>
