@@ -218,6 +218,23 @@ create policy "admin manages reference data" on cities for all using (auth.role(
 create policy "admin manages neighborhoods" on neighborhoods for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "admin manages categories" on categories for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
+-- RLS policies alone don't grant access - Postgres also requires the
+-- base table privilege underneath them. Supabase normally applies
+-- these automatically when "Automatically expose new tables" is on;
+-- we recommend leaving that off for manual control, so it's granted
+-- explicitly here instead.
+grant usage on schema public to anon, authenticated;
+grant select on
+  cities, neighborhoods, categories, events, vendors, vendor_events,
+  promo_pricing, promo_bookings, event_closed_hours, pins
+to anon, authenticated;
+grant insert on events, vendors, vendor_events, promo_bookings, pins
+to anon, authenticated;
+grant update, delete on
+  events, vendors, promo_bookings, promo_pricing, event_closed_hours,
+  pins, cities, neighborhoods, categories
+to authenticated;
+
 -- ============================================================
 -- Seed reference data (cities, San Jose neighborhoods, categories)
 -- Matches what's already hardcoded in both apps today, so migrating
