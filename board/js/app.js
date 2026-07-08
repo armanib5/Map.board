@@ -881,14 +881,13 @@ function showBoards(){
   document.getElementById("nB").classList.add("on");
   document.getElementById("nM").classList.remove("on");
 }
+/* The board used to have its own built-in placeholder map (the SVG
+   section still sitting dormant in this file/markup below - kept but
+   unreachable rather than deleted, since every "go to map" entry point
+   already funnels through this one function). Now that the real map
+   lives as its own app right next door, "Map" just takes you there. */
 function showMap(){
-  document.getElementById("bView").style.display="none";
-  document.getElementById("tdwrap").style.display="none";
-  document.getElementById("mapSec").style.display="block";
-  document.getElementById("adminSec").style.display="none";
-  document.getElementById("nM").classList.add("on");
-  document.getElementById("nB").classList.remove("on");
-  centerMap();
+  window.location.href="../map/index.html";
 }
 function scrollToday(){showBoards();document.getElementById("tdwrap").scrollIntoView({behavior:"smooth"});}
 function jumpTo(cat){
