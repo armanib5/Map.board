@@ -63,20 +63,58 @@ function renderTab(tab) {
   else if (tab === "hours") renderHoursTab(el);
 }
 
+/* Approve/reject used to fail silently on any error (RLS denial, network
+   hiccup, session expired) - the row would just sit there with no
+   feedback, looking like the button "didn't work". Every write below now
+   surfaces res.error via alert() instead of swallowing it. */
+var vendorsFilter = "pending", pinsFilter = "pending";
+
+function statusFilterBar(current, onChange) {
+  var bar = document.createElement("div"); bar.className = "tabrow"; bar.style.cssText = "margin:0 0 12px;padding:0;";
+  ["pending", "approved", "rejected", "all"].forEach(function (s) {
+    var b = document.createElement("button");
+    b.className = "tabbtn" + (s === current ? " on" : "");
+    b.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+    b.onclick = function () { onChange(s); };
+    bar.appendChild(b);
+  });
+  return bar;
+}
+
 function renderVendorsTab(el) {
   var sb = getSupabase();
   sb.from("vendors").select("*").order("created_at", { ascending: false }).then(function (res) {
     if (res.error) { el.innerHTML = "<p class='aempty'>" + res.error.message + "</p>"; return; }
-    if (!res.data.length) { el.innerHTML = "<p class='aempty'>No vendors yet.</p>"; return; }
     el.innerHTML = "";
-    res.data.forEach(function (v) {
+    el.appendChild(statusFilterBar(vendorsFilter, function (s) { vendorsFilter = s; renderVendorsTab(el); }));
+    var rows = vendorsFilter === "all" ? res.data : res.data.filter(function (v) { return v.status === vendorsFilter; });
+    if (vendorsFilter === "pending" && rows.length > 1) {
+      var approveAllBtn = document.createElement("button"); approveAllBtn.className = "abtn gold"; approveAllBtn.style.marginBottom = "10px";
+      approveAllBtn.textContent = "Approve All (" + rows.length + ")";
+      approveAllBtn.onclick = function () {
+        if (!confirm("Approve all " + rows.length + " pending vendors?")) return;
+        var ids = rows.map(function (v) { return v.id; });
+        sb.from("vendors").update({ status: "approved" }).in("id", ids).then(function (r) {
+          if (r.error) { alert("Couldn't approve all: " + r.error.message); return; }
+          renderVendorsTab(el);
+        });
+      };
+      el.appendChild(approveAllBtn);
+    }
+    if (!rows.length) { el.appendChild(document.createTextNode("")); var p = document.createElement("p"); p.className = "aempty"; p.textContent = "No " + (vendorsFilter === "all" ? "" : vendorsFilter + " ") + "vendors."; el.appendChild(p); return; }
+    rows.forEach(function (v) {
       var row = document.createElement("div"); row.className = "eventcard";
       row.innerHTML = "<span class='etitle'>" + v.name + " <span style='opacity:.6;font-size:11px;'>(" + v.status + ")</span></span>";
-      var approveBtn = document.createElement("button"); approveBtn.className = "abtn green"; approveBtn.textContent = "Approve";
-      approveBtn.onclick = function () { sb.from("vendors").update({ status: "approved" }).eq("id", v.id).then(function () { renderVendorsTab(el); }); };
-      var rejectBtn = document.createElement("button"); rejectBtn.className = "abtn red"; rejectBtn.textContent = "Reject";
-      rejectBtn.onclick = function () { sb.from("vendors").update({ status: "rejected" }).eq("id", v.id).then(function () { renderVendorsTab(el); }); };
-      row.appendChild(approveBtn); row.appendChild(rejectBtn);
+      if (v.status !== "approved") {
+        var approveBtn = document.createElement("button"); approveBtn.className = "abtn green"; approveBtn.textContent = "Approve";
+        approveBtn.onclick = function () { sb.from("vendors").update({ status: "approved" }).eq("id", v.id).then(function (r) { if (r.error) { alert("Couldn't approve: " + r.error.message); return; } renderVendorsTab(el); }); };
+        row.appendChild(approveBtn);
+      }
+      if (v.status !== "rejected") {
+        var rejectBtn = document.createElement("button"); rejectBtn.className = "abtn red"; rejectBtn.textContent = "Reject";
+        rejectBtn.onclick = function () { sb.from("vendors").update({ status: "rejected" }).eq("id", v.id).then(function (r) { if (r.error) { alert("Couldn't reject: " + r.error.message); return; } renderVendorsTab(el); }); };
+        row.appendChild(rejectBtn);
+      }
       el.appendChild(row);
     });
   });
@@ -86,17 +124,37 @@ function renderPinsTab(el) {
   var sb = getSupabase();
   sb.from("pins").select("*").order("created_at", { ascending: false }).then(function (res) {
     if (res.error) { el.innerHTML = "<p class='aempty'>" + res.error.message + "</p>"; return; }
-    if (!res.data.length) { el.innerHTML = "<p class='aempty'>No pins yet.</p>"; return; }
     el.innerHTML = "";
-    res.data.forEach(function (p) {
+    el.appendChild(statusFilterBar(pinsFilter, function (s) { pinsFilter = s; renderPinsTab(el); }));
+    var rows = pinsFilter === "all" ? res.data : res.data.filter(function (p) { return p.status === pinsFilter; });
+    if (pinsFilter === "pending" && rows.length > 1) {
+      var approveAllBtn = document.createElement("button"); approveAllBtn.className = "abtn gold"; approveAllBtn.style.marginBottom = "10px";
+      approveAllBtn.textContent = "Approve All (" + rows.length + ")";
+      approveAllBtn.onclick = function () {
+        if (!confirm("Approve all " + rows.length + " pending pins?")) return;
+        var ids = rows.map(function (p) { return p.id; });
+        sb.from("pins").update({ status: "approved" }).in("id", ids).then(function (r) {
+          if (r.error) { alert("Couldn't approve all: " + r.error.message); return; }
+          renderPinsTab(el);
+        });
+      };
+      el.appendChild(approveAllBtn);
+    }
+    if (!rows.length) { var p2 = document.createElement("p"); p2.className = "aempty"; p2.textContent = "No " + (pinsFilter === "all" ? "" : pinsFilter + " ") + "pins."; el.appendChild(p2); return; }
+    rows.forEach(function (p) {
       var row = document.createElement("div"); row.className = "eventcard";
       row.innerHTML = "<span class='etitle'>" + (p.title || "Untitled pin") + " &middot; " + p.owner_name +
         " <span style='opacity:.6;font-size:11px;'>(" + p.source + " / " + p.status + ")</span></span>";
-      var approveBtn = document.createElement("button"); approveBtn.className = "abtn green"; approveBtn.textContent = "Approve";
-      approveBtn.onclick = function () { sb.from("pins").update({ status: "approved" }).eq("id", p.id).then(function () { renderPinsTab(el); }); };
-      var rejectBtn = document.createElement("button"); rejectBtn.className = "abtn red"; rejectBtn.textContent = "Reject";
-      rejectBtn.onclick = function () { sb.from("pins").update({ status: "rejected" }).eq("id", p.id).then(function () { renderPinsTab(el); }); };
-      row.appendChild(approveBtn); row.appendChild(rejectBtn);
+      if (p.status !== "approved") {
+        var approveBtn = document.createElement("button"); approveBtn.className = "abtn green"; approveBtn.textContent = "Approve";
+        approveBtn.onclick = function () { sb.from("pins").update({ status: "approved" }).eq("id", p.id).then(function (r) { if (r.error) { alert("Couldn't approve: " + r.error.message); return; } renderPinsTab(el); }); };
+        row.appendChild(approveBtn);
+      }
+      if (p.status !== "rejected") {
+        var rejectBtn = document.createElement("button"); rejectBtn.className = "abtn red"; rejectBtn.textContent = "Reject";
+        rejectBtn.onclick = function () { sb.from("pins").update({ status: "rejected" }).eq("id", p.id).then(function (r) { if (r.error) { alert("Couldn't reject: " + r.error.message); return; } renderPinsTab(el); }); };
+        row.appendChild(rejectBtn);
+      }
       el.appendChild(row);
     });
   });

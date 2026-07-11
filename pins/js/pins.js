@@ -23,6 +23,32 @@ function init() {
 
   document.getElementById("btnSubmitPin").onclick = submitPin;
   document.getElementById("btnClearPin").onclick = clearPin;
+  prefillFromQuery();
+}
+
+/* "Add to Map" on a flyer/vendor's own detail view links here with
+   ?title=&addr=&cat= instead of making someone manually retype an
+   address they already entered once - board flyers only ever store a
+   free-text address (no real lat/lng), so this forward-geocodes it via
+   the same Nominatim service /pins/ already uses in reverse. */
+function prefillFromQuery() {
+  var params = new URLSearchParams(location.search);
+  var title = params.get("title"), addr = params.get("addr"), cat = params.get("cat");
+  if (!addr) return;
+  var hint = document.getElementById("locHint");
+  document.getElementById("pinPanel").style.display = "block";
+  hint.textContent = "Looking up " + addr + "…";
+  fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=" + encodeURIComponent(addr))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data || !data.length) { hint.textContent = "Couldn't find that address automatically - tap the map to place your pin."; return; }
+      var latlng = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      pinMap.setView(latlng, 17);
+      placeMarker(latlng);
+      if (title) document.getElementById("pTitle").value = title;
+      if (cat && document.querySelector("#pCat option[value='" + cat + "']")) document.getElementById("pCat").value = cat;
+    })
+    .catch(function () { hint.textContent = "Couldn't look up that address - tap the map to place your pin."; });
 }
 
 function placeMarker(latlng) {

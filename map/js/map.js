@@ -154,6 +154,13 @@ function hideFullDetail() {
   document.getElementById("detailOv").classList.remove("on");
 }
 
+function addPlaceMarker(p) {
+  var m = L.marker([p.lat, p.lng], { icon: pinDivIcon(p) });
+  m.bpPlace = p;
+  m.on("click", function () { showFlyer(p); });
+  markerById[p.id] = m;
+}
+
 function buildMarkers() {
   /* disableClusteringAtZoom guarantees every pin becomes individually
      visible and clickable once zoomed in far enough, even when two pins
@@ -161,13 +168,50 @@ function buildMarkers() {
      venue's restroom pin) - without it they'd stay clustered together
      at any zoom, since they're only meters apart. */
   clusterGroup = L.markerClusterGroup({ iconCreateFunction: clusterIcon, maxClusterRadius: 50, disableClusteringAtZoom: 18 });
-  PLACES.forEach(function (p) {
-    var m = L.marker([p.lat, p.lng], { icon: pinDivIcon(p) });
-    m.bpPlace = p;
-    m.on("click", function () { showFlyer(p); });
-    markerById[p.id] = m;
-  });
+  PLACES.forEach(addPlaceMarker);
   map.addLayer(clusterGroup);
+}
+
+/* Nearest hood (by straight-line distance) to a lat/lng, searched across
+   every city - used to slot Supabase-approved pins (which don't carry a
+   `hood` field) into the same neighborhood filtering the static PLACES
+   already use. */
+function nearestHood(lat, lng) {
+  var best = null, bestDist = Infinity;
+  CITIES.forEach(function (c) {
+    c.hoods.forEach(function (h) {
+      var d = haversine(lat, lng, h.lat, h.lng);
+      if (d < bestDist) { bestDist = d; best = { city: c.id, hood: h.id }; }
+    });
+  });
+  return best || { city: "sj", hood: "downtown" };
+}
+
+/* Approved pins (added via /admin/'s Pins tab or the public /pins/ page)
+   live in Supabase, but this map only ever read the static PLACES array -
+   approving a pin never made it appear here. Fetched once after the
+   static map is already up and merged in as new markers, so approving in
+   /admin/ actually shows up on the live map instead of only updating a
+   database row nobody sees. */
+function loadApprovedPins() {
+  if (typeof isSupabaseConfigured !== "function" || !isSupabaseConfigured()) return;
+  var sb = getSupabase();
+  sb.from("pins").select("*").eq("status", "approved").then(function (res) {
+    if (res.error || !res.data || !res.data.length) return;
+    res.data.forEach(function (p) {
+      var loc = nearestHood(p.lat, p.lng);
+      var place = {
+        id: "sb-" + p.id, cat: p.cat_id || "shop", hood: loc.hood,
+        t: p.title || p.owner_name || "Vendor Pin",
+        a: p.owner_name || "", ds: p.description || "",
+        lat: p.lat, lng: p.lng
+      };
+      PLACES.push(place);
+      addPlaceMarker(place);
+    });
+    updateLegendCounts();
+    applyFilters();
+  });
 }
 
 /* Builds a red "active zone" outline for any place that defines one (a
@@ -450,6 +494,7 @@ function initMap() {
   renderHoodRow();
   initFilterRow();
   initSearch();
+  loadApprovedPins();
 
   document.getElementById("zIn").onclick = function () { map.stop(); map.zoomIn(); };
   document.getElementById("zOut").onclick = function () { map.stop(); map.zoomOut(); };

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>BayPinned SJ &mdash; Map</title>
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Libre+Franklin:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
@@ -67,6 +67,10 @@
     </div>
   </section>
 
+  <div style="text-align:center;padding:20px 14px 6px;">
+    <a class="backboard" href="../pins/index.html" style="display:inline-block;">+ Add My Pin</a>
+  </div>
+
   <footer>BayPinned SJ &middot; Map component preview &middot; will be merged into the main site</footer>
 </div>
 
@@ -77,6 +81,9 @@
 <script src="vendor/leaflet/leaflet.js"></script>
 <script src="vendor/markercluster/leaflet.markercluster.js"></script>
 <script src="data/places.js?v=8"></script>
-<script src="js/map.js?v=8"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../shared/supabase-config.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="js/map.js?v=9"></script>
 </body>
 </html>

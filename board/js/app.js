@@ -126,7 +126,25 @@ var DEF=[
 
 var KEY="pinnedsj-v9",evts=[],mS=1,mX=0,mY=0,pan=false,ps={x:0,y:0};
 
+/* Website/social links people type without a protocol (e.g. "mysite.com")
+   render as a relative link and silently go nowhere when clicked - this
+   normalizes them to an absolute https:// URL so Website/Instagram/etc.
+   links actually navigate. Shared by app.js (event website) and
+   vendors.js (vendor website/social). */
+function normalizeUrl(s){
+  s=(s||"").trim();
+  if(!s)return s;
+  if(/^https?:\/\//i.test(s))return s;
+  return "https://"+s;
+}
+
 document.getElementById("zOv").onclick=function(){this.classList.remove("on");};
+document.getElementById("zOvClose").onclick=function(e){e.stopPropagation();document.getElementById("zOv").classList.remove("on");};
+function zoomPhoto(url){
+  if(!url)return;
+  document.getElementById("zImg").src=url;
+  document.getElementById("zOv").classList.add("on");
+}
 document.getElementById("postBtn").onclick=function(){openForm("");};
 document.getElementById("postBtn2").onclick=function(){openForm("");};
 
@@ -300,6 +318,7 @@ function renderHoodRow(){
 }
 
 function goToHood(hoodId){
+  clearJumpSpacer();
   curHood=hoodId;
   document.querySelectorAll(".hoodbtn").forEach(function(b){b.classList.toggle("on",b.dataset.hoodId===hoodId);});
   document.getElementById("citylbl").textContent=(CN.sj||"San Jose, CA")+(hoodId!=="downtown"?" · "+hoodLabel(hoodId):"");
@@ -309,6 +328,7 @@ function goToHood(hoodId){
 }
 
 function setCity(v){
+  clearJumpSpacer();
   curCity=v;
   curHood=v==="sj"?"downtown":null;
   document.getElementById("citylbl").textContent=CN[v]||v;
@@ -403,7 +423,7 @@ function setupBackToTop(){
   window.addEventListener("scroll",function(){
     btn.classList.toggle("show",window.scrollY>420);
   },{passive:true});
-  btn.addEventListener("click",function(){window.scrollTo({top:0,behavior:"smooth"});});
+  btn.addEventListener("click",function(){clearJumpSpacer();window.scrollTo({top:0,behavior:"smooth"});});
 }
 
 function mkBoard(cat,items){
@@ -514,8 +534,12 @@ function openDetail(id){
   dp.appendChild(vhBtn);
 
   var hero=document.createElement("div");hero.className="dhero"+(ev.photo?" hp":"");
-  if(ev.photo){hero.style.backgroundImage="url("+ev.photo+")";hero.style.backgroundSize="cover";hero.style.backgroundPosition="center";}
-  else{hero.innerHTML=ico;}
+  if(ev.photo){
+    hero.style.backgroundImage="url("+ev.photo+")";hero.style.backgroundSize="cover";hero.style.backgroundPosition="center";
+    var zoomBtn=document.createElement("button");zoomBtn.className="photozoom";zoomBtn.innerHTML="&#128269;";zoomBtn.title="View full photo";
+    zoomBtn.onclick=function(e){e.stopPropagation();zoomPhoto(ev.photo);};
+    hero.appendChild(zoomBtn);
+  }else{hero.innerHTML=ico;}
   dp.appendChild(hero);
 
   var body=document.createElement("div");body.className="dbody";body.id="infoView";
@@ -527,7 +551,9 @@ function openDetail(id){
   var dloc=document.createElement("div");dloc.className="dloc";
   var dadr=document.createElement("span");dadr.className="dadr";dadr.textContent=ev.a;
   var mapBtn=document.createElement("a");mapBtn.className="ab blue";mapBtn.href=mu;mapBtn.target="_blank";mapBtn.textContent="Open in Maps";
-  dloc.appendChild(dadr);dloc.appendChild(mapBtn);
+  var pinBtn=document.createElement("a");pinBtn.className="ab gold";pinBtn.textContent="Add to Map";
+  pinBtn.href="../pins/index.html?title="+encodeURIComponent(ev.t)+"&addr="+encodeURIComponent(ev.a)+"&cat="+encodeURIComponent(ev.cat);
+  dloc.appendChild(dadr);dloc.appendChild(mapBtn);dloc.appendChild(pinBtn);
 
   body.appendChild(rib);body.appendChild(h2);body.appendChild(dw);body.appendChild(dloc);
 
@@ -628,7 +654,7 @@ function buildVendorHub(ev){
   vhub.appendChild(cta);
 
   var addV=document.createElement("button");addV.className="sugbtn";addV.textContent="+ Add Your Business";
-  addV.onclick=(function(cat,eid){return function(){openVendorForm(cat,"",eid);};})(ev.cat,ev.id);
+  addV.onclick=(function(cat,eid){return function(){startAddVendorFlow(cat,eid);};})(ev.cat,ev.id);
   vhub.appendChild(addV);
 
   /* Direct, easy-to-find entry point into checkout for anyone who
@@ -721,8 +747,9 @@ function cls(){
 
 function shareEv(id){
   var ev=evts.find(function(e){return e.id===id;});if(!ev)return;
-  if(navigator.share)navigator.share({title:ev.t,text:ev.ds,url:location.href});
-  else{try{navigator.clipboard.writeText(location.href).then(function(){alert("Link copied!");});}catch(e){alert("Copy the URL from your browser bar.");}}
+  if(navigator.share){navigator.share({title:ev.t,text:ev.ds,url:location.href}).catch(function(){});return;}
+  if(!navigator.clipboard){alert("Copy the URL from your browser bar.");return;}
+  navigator.clipboard.writeText(location.href).then(function(){alert("Link copied!");},function(){alert("Couldn't copy automatically - copy the URL from your browser bar.");});
 }
 
 function delEv(id){
@@ -740,6 +767,7 @@ function editEv(id){
     sv("ft",ev.t);sv("fl",ev.lbl);sv("fw",ev.w);sv("fa",ev.a);
     sv("fph",ev.ph);sv("fws",ev.wb);sv("fd",ev.ds);
     sv("ft2",(ev.tags||[]).join(", "));sv("fen",ev.ed);
+    sv("fpk",ev.pk);sv("ftr",ev.tr);sv("fac",ev.ac);sv("ffam",ev.fam);
     document.getElementById("fcat").value=ev.cat;
     document.getElementById("fdate").value=ev.d||"";
     var hoodEl=document.getElementById("fhood");
@@ -776,7 +804,7 @@ function openForm(defCat){
     var hoodOpts=HOODS_SJ.map(function(h){return "<option value='"+h.id+"'"+(h.id===curHood?" selected":"")+">"+h.l+"</option>";}).join("");
     hoodField="<label>Neighborhood</label><select id='fhood'>"+hoodOpts+"</select>";
   }
-  fp.innerHTML="<div class='fi'><h2>Post a Flyer</h2><label>Title *</label><input id='ft' type='text' placeholder='e.g. Japantown Night Market'><label>Category</label><select id='fcat'>"+opts+"</select>"+hoodField+"<label>Short label shown on flyer</label><input id='fl' type='text' placeholder='e.g. Weekly Market'><label>When</label><input id='fw' type='text' placeholder='e.g. Saturdays 10am-2pm'><label>Date or recurrence</label><select id='fdate'><option value=''>None</option><option value='today'>Today</option><option value='daily'>Every Day</option><option value='mon'>Mondays</option><option value='tue'>Tuesdays</option><option value='wed'>Wednesdays</option><option value='thu'>Thursdays</option><option value='fri'>Fridays</option><option value='sat'>Saturdays</option><option value='sun'>Sundays</option><option value='monthly'>First Friday Monthly</option></select><label>Address *</label><input id='fa' type='text' placeholder='e.g. 87 N San Pedro St San Jose CA'><label>Phone</label><input id='fph' type='text' placeholder='(408) 555-0100'><label>Website</label><input id='fws' type='text' placeholder='https://'><label>Description</label><textarea id='fd' placeholder='Tell people what this is...'></textarea><label>Tags (comma separated)</label><input id='ft2' type='text' placeholder='Free Family Outdoor'><label>End date (auto-expires)</label><input id='fen' type='date'><label>Photo (optional)</label><input id='fp2' type='file' accept='image/*'><div class='facts'><button class='bcan' id='frmCan'>Cancel</button><button class='bsub' id='frmSub'>Pin It Up</button></div></div>";
+  fp.innerHTML="<div class='fi'><h2>Post a Flyer</h2><label>Title *</label><input id='ft' type='text' placeholder='e.g. Japantown Night Market'><label>Category</label><select id='fcat'>"+opts+"</select>"+hoodField+"<label>Short label shown on flyer</label><input id='fl' type='text' placeholder='e.g. Weekly Market'><label>When</label><input id='fw' type='text' placeholder='e.g. Saturdays 10am-2pm'><label>Date or recurrence</label><select id='fdate'><option value=''>None</option><option value='today'>Today</option><option value='daily'>Every Day</option><option value='mon'>Mondays</option><option value='tue'>Tuesdays</option><option value='wed'>Wednesdays</option><option value='thu'>Thursdays</option><option value='fri'>Fridays</option><option value='sat'>Saturdays</option><option value='sun'>Sundays</option><option value='monthly'>First Friday Monthly</option></select><label>Address *</label><input id='fa' type='text' placeholder='e.g. 87 N San Pedro St San Jose CA'><label>Phone</label><input id='fph' type='text' placeholder='(408) 555-0100'><label>Website</label><input id='fws' type='text' placeholder='https://'><label>Description</label><textarea id='fd' placeholder='Tell people what this is...'></textarea><label>Tags (comma separated)</label><input id='ft2' type='text' placeholder='Free Family Outdoor'><label>End date (auto-expires)</label><input id='fen' type='date'><label>Parking</label><input id='fpk' type='text' placeholder='e.g. ParkSJ garage 90 min free'><label>Transit</label><input id='ftr' type='text' placeholder='e.g. VTA Route 68, 5 min walk'><label>Accessibility</label><input id='fac' type='text' placeholder='e.g. Fully accessible, wide pathways'><label>Family</label><input id='ffam' type='text' placeholder='e.g. Family friendly, stroller-friendly'><label>Photo (optional)</label><input id='fp2' type='file' accept='image/*'><div class='facts'><button class='bcan' id='frmCan'>Cancel</button><button class='bsub' id='frmSub'>Pin It Up</button></div></div>";
   if(defCat)document.getElementById("fcat").value=defCat;
   document.getElementById("frmCan").onclick=cls;
   document.getElementById("frmSub").onclick=subForm;
@@ -795,13 +823,16 @@ function subForm(){
     t:t,w:document.getElementById("fw").value.trim()||"See details",
     d:document.getElementById("fdate").value||"",a:a,
     ph:document.getElementById("fph").value.trim(),
-    wb:document.getElementById("fws").value.trim(),
+    wb:normalizeUrl(document.getElementById("fws").value),
     ds:document.getElementById("fd").value.trim(),
     tags:document.getElementById("ft2").value.split(",").map(function(s){return s.trim();}).filter(Boolean),
     ed:document.getElementById("fen").value||"",photo:"",g:[],exp:false,ms:"",
     mx:390+(Math.random()-.5)*100,my:420+(Math.random()-.5)*80,
-    pk:"Contact organizer.",tr:"Check VTA.org.",ac:"Contact organizer.",
-    fam:"Contact organizer.",fp:"See Google Maps",fd:"See Google Maps",vg:[]};
+    pk:document.getElementById("fpk").value.trim()||"Contact organizer.",
+    tr:document.getElementById("ftr").value.trim()||"Check VTA.org.",
+    ac:document.getElementById("fac").value.trim()||"Contact organizer.",
+    fam:document.getElementById("ffam").value.trim()||"Contact organizer.",
+    fp:"See Google Maps",fd:"See Google Maps",vg:[]};
   function done(){
     if(eid){var i=evts.findIndex(function(e){return e.id===eid;});if(i>=0){ev.g=evts[i].g||[];evts[i]=ev;}}
     else evts.push(ev);
@@ -890,8 +921,31 @@ function showMap(){
   window.location.href="../map/index.html";
 }
 function scrollToday(){showBoards();document.getElementById("tdwrap").scrollIntoView({behavior:"smooth"});}
+/* The last category board can't always scroll all the way to the top of
+   the viewport - there's not enough page below it for the browser to
+   scroll into - so scrollIntoView silently clamps short, leaving the
+   PREVIOUS board still showing at the top ("category redirects to a
+   different board"). A temporary spacer sized to one viewport gives any
+   section room to reach the top. It's deliberately NOT auto-removed on a
+   timer: removing it shrinks the page and the browser re-clamps the
+   current scroll position right back to where it was before, undoing the
+   fix. Instead it's simply cleared out at the start of the next jump
+   (or scroll-to-top), which is invisible since a new scroll is about to
+   happen anyway. */
+function clearJumpSpacer(){
+  var s=document.getElementById("jumpToSpacer");if(s)s.remove();
+}
 function jumpTo(cat){
   showBoards();
-  setTimeout(function(){var t=document.getElementById("board-"+cat);if(t)t.scrollIntoView({behavior:"smooth",block:"start"});},80);
+  clearJumpSpacer();
+  setTimeout(function(){
+    var t=document.getElementById("board-"+cat);
+    if(!t)return;
+    var spacer=document.createElement("div");
+    spacer.id="jumpToSpacer";
+    spacer.style.height=window.innerHeight+"px";
+    document.body.appendChild(spacer);
+    t.scrollIntoView({behavior:"smooth",block:"start"});
+  },80);
 }
 document.addEventListener("DOMContentLoaded",init);
