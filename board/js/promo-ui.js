@@ -145,6 +145,12 @@ function renderPromoSlotStep() {
   document.getElementById("slotNextBtn").onclick = function () { if (promoState.slots.length === need) renderPromoCheckout(); };
 }
 
+/* No card fields collected here on purpose - money never routes through
+   Citypinned. A buyer gets the vendor's own payment handles (Venmo/Cash
+   App/Zelle/other) only after agreeing this is an advertising directory,
+   not a payment processor, then self-confirms once they've paid the
+   vendor directly through that app. Real Stripe/payment-processor
+   integration is a separate follow-up. */
 function renderPromoCheckout() {
   var v = vendors.find(function (x) { return x.id === promoState.vendorId; });
   var ev = evts.find(function (x) { return x.id === promoState.eventId; });
@@ -155,32 +161,54 @@ function renderPromoCheckout() {
   var slotWords = promoState.slots.slice().sort(function (a, b) { return a - b; }).map(function (i) { return slotTimeLabel(promoState.hour, i, type); }).join(" &amp; ");
   var summary = "<b>" + typeLabel + "</b> for " + escHtml(v.name) + " during " + escHtml(ev.t) + "<br>" +
     fmtHour(promoState.hour) + " hour, " + slotWords;
+  var payment = v.payment || {};
   var p = document.getElementById("promoPanel");
   p.innerHTML = "<div class='promo-step'>" +
-    "<div class='promo-head'><button class='promo-back' id='promoBackBtn'>&#8592;</button><h2>&#128179; Checkout</h2></div>" +
-    "<div class='checkout-demo-banner'>Demo checkout — no real payment is processed. This activates the promotion in your browser only.</div>" +
+    "<div class='promo-head'><button class='promo-back' id='promoBackBtn'>&#8592;</button><h2>&#128179; Pay the Vendor Directly</h2></div>" +
     "<div class='promo-summary'>" + summary + "<br><b>Total: $" + amount + "</b></div>" +
     "<div id='promoCkErr'></div>" +
-    "<label>Name on card</label><input id='ckName' type='text' placeholder='Jane Vendor'>" +
-    "<label>Card number (demo)</label><input id='ckCard' type='text' placeholder='4242 4242 4242 4242'>" +
-    "<div class='facts'><button class='bcan' id='promoCloseBtn'>Cancel</button><button class='bsub' id='payBtn'>Pay $" + amount + " — Activate</button></div></div>";
+    "<p style='font-size:11px;line-height:1.5;color:rgba(90,65,30,.75);margin:10px 0;'>" + PLATFORM_DISCLAIMER + "</p>" +
+    "<label style='display:flex;align-items:flex-start;gap:8px;font-size:12.5px;'><input type='checkbox' id='payAgree' style='margin-top:3px;flex-shrink:0;'> I agree that BayPinned and its sister city networks (including Citypinned) are advertising directories only, do not process this payment, and cannot issue refunds or resolve disputes.</label>" +
+    "<div id='payInfoWrap' style='display:none;margin-top:12px;'></div>" +
+    "<div class='facts'>" +
+    "<button class='bcan' id='promoCloseBtn'>Cancel</button>" +
+    "<button class='bsub' id='getInfoBtn' disabled>Get Vendor Payment Info</button>" +
+    "<button class='bsub' id='confirmPaidBtn' style='display:none;'>Confirm I Paid Vendor</button>" +
+    "</div></div>";
   p.querySelector(".promo-step").classList.add("fi");
   document.getElementById("promoCloseBtn").onclick = promoCls;
   document.getElementById("promoBackBtn").onclick = renderPromoSlotStep;
-  document.getElementById("payBtn").onclick = function () {
-    var btn = document.getElementById("payBtn");
-    btn.disabled = true; btn.textContent = "Processing…";
-    setTimeout(function () {
-      var result = type === "boost"
-        ? reserveBoost(promoState.eventId, promoState.vendorId, promoState.hour, promoState.slots)
-        : reserveFeatured(promoState.eventId, promoState.vendorId, promoState.hour, promoState.slots[0]);
-      if (!result.ok) {
-        document.getElementById("promoCkErr").innerHTML = "<div class='promo-err'>" + escHtml(result.reason) + "</div>";
-        btn.disabled = false; btn.textContent = "Pay $" + amount + " — Activate";
-        return;
-      }
-      renderPromoSuccess(result.booking);
-    }, 500);
+
+  var agreeChk = document.getElementById("payAgree"), getInfoBtn = document.getElementById("getInfoBtn");
+  agreeChk.onchange = function () { getInfoBtn.disabled = !agreeChk.checked; };
+
+  getInfoBtn.onclick = function () {
+    var wrap = document.getElementById("payInfoWrap");
+    var lines = [];
+    if (payment.venmo) lines.push("<div><b>Venmo:</b> " + escHtml(payment.venmo) + "</div>");
+    if (payment.cashapp) lines.push("<div><b>Cash App:</b> " + escHtml(payment.cashapp) + "</div>");
+    if (payment.zelle) lines.push("<div><b>Zelle:</b> " + escHtml(payment.zelle) + "</div>");
+    if (payment.other) lines.push("<div><b>Other:</b> " + escHtml(payment.other) + "</div>");
+    wrap.innerHTML = lines.length
+      ? "<div class='promo-summary'>Pay $" + amount + " to " + escHtml(v.name) + " using:<br>" + lines.join("") + "</div>"
+      : "<div class='promo-err'>This vendor hasn't added payment info yet - contact them directly to arrange payment.</div>";
+    wrap.style.display = "block";
+    getInfoBtn.style.display = "none";
+    if (lines.length) document.getElementById("confirmPaidBtn").style.display = "inline-block";
+  };
+
+  document.getElementById("confirmPaidBtn").onclick = function () {
+    var btn = document.getElementById("confirmPaidBtn");
+    btn.disabled = true; btn.textContent = "Confirming…";
+    var result = type === "boost"
+      ? reserveBoost(promoState.eventId, promoState.vendorId, promoState.hour, promoState.slots)
+      : reserveFeatured(promoState.eventId, promoState.vendorId, promoState.hour, promoState.slots[0]);
+    if (!result.ok) {
+      document.getElementById("promoCkErr").innerHTML = "<div class='promo-err'>" + escHtml(result.reason) + "</div>";
+      btn.disabled = false; btn.textContent = "Confirm I Paid Vendor";
+      return;
+    }
+    renderPromoSuccess(result.booking);
   };
 }
 

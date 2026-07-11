@@ -32,13 +32,20 @@ function toggleFav(id) {
   Storage.set(VFAV_KEY, favs);
 }
 
+/* A vendor is publicly visible only once approved and not deactivated -
+   pending/rejected/denied listings (and approved ones an admin has since
+   deactivated) stay hidden from the public board/map until acted on.
+   isMyVendor() below still lets a vendor find their own pending listing
+   via My Dashboard regardless of visibility, so submitting doesn't feel
+   like it vanished. */
+function isVendorVisible(v) { return v.status === "approved" && v.active !== false; }
 function vendorEvents(v) {
   return (v.events || []).map(function (id) {
     return evts.find(function (e) { return e.id === id; });
   }).filter(Boolean);
 }
 function eventVendors(ev) {
-  return vendors.filter(function (v) { return (v.events || []).indexOf(ev.id) >= 0; });
+  return vendors.filter(function (v) { return isVendorVisible(v) && (v.events || []).indexOf(ev.id) >= 0; });
 }
 
 /* Vendor profile detail — reuses the same .dpanel/.dhero/.dbody/.igrid
@@ -167,7 +174,9 @@ function openVendorDetail(id, fromEventId) {
   promoBtn.addEventListener("click", function () { openPromoPicker(v.id); });
   var msgBtn = document.createElement("button"); msgBtn.className = "ab gray"; msgBtn.disabled = true;
   msgBtn.style.opacity = ".5"; msgBtn.textContent = "Message (Coming Soon)";
-  btns.appendChild(favBtn); btns.appendChild(shareBtn); btns.appendChild(mapBtn2); btns.appendChild(dirBtn); btns.appendChild(editBtn); btns.appendChild(promoBtn); btns.appendChild(msgBtn);
+  var reportBtn = document.createElement("button"); reportBtn.className = "ab gray"; reportBtn.textContent = "Report";
+  reportBtn.addEventListener("click", function () { openReportForm("vendor", v.id, v.name); });
+  btns.appendChild(favBtn); btns.appendChild(shareBtn); btns.appendChild(mapBtn2); btns.appendChild(dirBtn); btns.appendChild(editBtn); btns.appendChild(promoBtn); btns.appendChild(msgBtn); btns.appendChild(reportBtn);
   body.appendChild(btns);
 
   dp.appendChild(body);
@@ -206,7 +215,7 @@ function backToVendorHub(eventId) {
 function renderVendorPins() {
   var g = document.getElementById("vPins"); if (!g) return;
   g.innerHTML = "";
-  vendors.filter(function (v) { return v.mx && v.my; }).forEach(function (v) {
+  vendors.filter(function (v) { return v.mx && v.my && isVendorVisible(v); }).forEach(function (v) {
     var cat = C[v.cat] || { c: "#666", i: "&#128204;" };
     var pg = document.createElementNS("http://www.w3.org/2000/svg", "g");
     pg.setAttribute("class", "vp"); pg.setAttribute("id", "vpin-" + v.id);
@@ -245,26 +254,85 @@ function showAdmin() {
   if (typeof showAdminTab === "function") showAdminTab("vendors");
   else renderAdminList();
 }
+function vendorTier(v) {
+  if (typeof getBookings !== "function") return "Standard";
+  var mine = getBookings().filter(function (b) { return b.vendorId === v.id && b.status !== "cancelled"; });
+  if (!mine.length) return "Standard";
+  if (mine.some(function (b) { return b.type === "featured"; })) return "Featured";
+  if (mine.some(function (b) { return b.type === "boost"; })) return "Boost";
+  return "Standard";
+}
+
+var vendorAdminFilter = "pending";
+
 function renderAdminList() {
   var list = document.getElementById("adminList");
   if (!list) return;
   list.innerHTML = "";
-  vendors.forEach(function (v) {
+
+  var bar = document.createElement("div");
+  bar.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;";
+  ["pending", "approved", "rejected", "denied", "all"].forEach(function (s) {
+    var b = document.createElement("button");
+    b.className = "nb" + (s === vendorAdminFilter ? " on" : "");
+    b.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+    b.onclick = function () { vendorAdminFilter = s; renderAdminList(); };
+    bar.appendChild(b);
+  });
+  list.appendChild(bar);
+
+  /* Master history: every vendor that ever applied, filterable by status,
+     newest first, showing tier + submitted timestamp + current status so
+     nothing that was here before quietly disappears from view. */
+  var rows = vendorAdminFilter === "all" ? vendors.slice() : vendors.filter(function (v) { return v.status === vendorAdminFilter; });
+  if (!rows.length) {
+    var empty = document.createElement("p"); empty.className = "aempty";
+    empty.textContent = "No " + (vendorAdminFilter === "all" ? "" : vendorAdminFilter + " ") + "vendors.";
+    list.appendChild(empty); return;
+  }
+  rows.sort(function (a, b) { return new Date(b.createdAt || 0) - new Date(a.createdAt || 0); });
+
+  rows.forEach(function (v) {
     var row = document.createElement("div");
-    row.style.cssText = "background:rgba(253,246,224,.06);border:1px solid rgba(218,184,112,.2);border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;";
+    row.style.cssText = "background:rgba(253,246,224,.06);border:1px solid rgba(218,184,112,.2);border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;";
 
     var name = document.createElement("div");
-    name.style.cssText = "font-family:'Special Elite',monospace;font-size:12.5px;color:var(--cl);flex:1;min-width:140px;";
-    name.textContent = v.name + " (" + v.status + ")";
+    name.style.cssText = "font-family:'Special Elite',monospace;font-size:12.5px;color:var(--cl);flex:1;min-width:160px;";
+    var when = v.createdAt ? new Date(v.createdAt).toLocaleDateString() : "?";
+    var statusLabel = v.status + (v.status === "approved" ? (v.active === false ? " / deactivated" : " / active") : "");
+    name.innerHTML = escHtml(v.name) + "<br><span style='opacity:.65;font-size:10.5px;'>" + vendorTier(v) + " &middot; " + when + " &middot; " + statusLabel + "</span>" +
+      (v.status === "denied" && v.denialReason ? "<br><span style='opacity:.6;font-size:10px;font-style:italic;'>" + escHtml(v.denialReason) + "</span>" : "");
     row.appendChild(name);
 
-    var approveBtn = document.createElement("button");
-    approveBtn.className = "nb"; approveBtn.textContent = "Approve";
-    approveBtn.onclick = function () { v.status = "approved"; saveVendors(); renderAdminList(); };
-    var rejectBtn = document.createElement("button");
-    rejectBtn.className = "nb"; rejectBtn.textContent = "Reject";
-    rejectBtn.onclick = function () { v.status = "rejected"; saveVendors(); renderAdminList(); };
-    row.appendChild(approveBtn); row.appendChild(rejectBtn);
+    if (v.status !== "approved") {
+      var approveBtn = document.createElement("button"); approveBtn.className = "nb"; approveBtn.textContent = "Approve";
+      approveBtn.onclick = function () { v.status = "approved"; v.active = true; v.denialReason = ""; saveVendors(); renderAdminList(); renderVendorPins(); };
+      row.appendChild(approveBtn);
+    }
+    if (v.status === "approved" && v.active === false) {
+      var activateBtn = document.createElement("button"); activateBtn.className = "nb"; activateBtn.textContent = "Activate";
+      activateBtn.onclick = function () { v.active = true; saveVendors(); renderAdminList(); renderVendorPins(); };
+      row.appendChild(activateBtn);
+    }
+    if (v.status === "approved" && v.active !== false) {
+      var deactivateBtn = document.createElement("button"); deactivateBtn.className = "nb"; deactivateBtn.textContent = "Deactivate";
+      deactivateBtn.onclick = function () { v.active = false; saveVendors(); renderAdminList(); renderVendorPins(); };
+      row.appendChild(deactivateBtn);
+    }
+    if (v.status !== "rejected") {
+      var rejectBtn = document.createElement("button"); rejectBtn.className = "nb"; rejectBtn.textContent = "Reject";
+      rejectBtn.onclick = function () { v.status = "rejected"; saveVendors(); renderAdminList(); renderVendorPins(); };
+      row.appendChild(rejectBtn);
+    }
+    if (v.status !== "denied") {
+      var denyBtn = document.createElement("button"); denyBtn.className = "nb"; denyBtn.textContent = "Deny";
+      denyBtn.onclick = function () {
+        if (!confirm("Deny " + v.name + "'s application? They'll be told: \"Your vendor application could not be verified at this time.\"")) return;
+        v.status = "denied"; v.denialReason = "Your vendor application could not be verified at this time.";
+        saveVendors(); renderAdminList(); renderVendorPins();
+      };
+      row.appendChild(denyBtn);
+    }
 
     var promoCount = typeof getBookings === "function"
       ? getBookings().filter(function (b) { return b.vendorId === v.id && b.status !== "cancelled"; }).length
@@ -294,6 +362,11 @@ function openVendorForm(defCat, vid, eventId) {
     "<label>Email</label><input id='vem' type='text' placeholder='hello@business.com'>" +
     "<label>Website</label><input id='vwb' type='text' placeholder='https://'>" +
     "<label>Instagram</label><input id='vig' type='text' placeholder='https://instagram.com/yourbiz'>" +
+    "<p style='font-size:11.5px;color:rgba(90,65,30,.65);margin:6px 0 2px;'>Payment handles - shown to a buyer only after they check out for a paid promotion, so they can pay you directly through your own app. Optional, but at least one is needed for buyers to pay you.</p>" +
+    "<label>Venmo</label><input id='vpay_venmo' type='text' placeholder='@your-venmo'>" +
+    "<label>Cash App</label><input id='vpay_cashapp' type='text' placeholder='$yourcashtag'>" +
+    "<label>Zelle</label><input id='vpay_zelle' type='text' placeholder='phone or email'>" +
+    "<label>Other payment info</label><input id='vpay_other' type='text' placeholder='e.g. PayPal.me link'>" +
     ["mon","tue","wed","thu","fri","sat","sun"].map(function (d) {
       var lbl = d.charAt(0).toUpperCase() + d.slice(1) + " Hours";
       return "<label>" + lbl + "</label><input id='vh_" + d + "' type='text' placeholder='e.g. 9am-5pm or Closed'>";
@@ -314,6 +387,8 @@ function openVendorForm(defCat, vid, eventId) {
       sv("vn", v.name); sv("vd", v.desc); sv("vmenu", v.menu); sv("va", v.address);
       sv("vph", v.contact && v.contact.phone); sv("vem", v.contact && v.contact.email);
       sv("vwb", v.website); sv("vig", v.social && v.social.instagram);
+      sv("vpay_venmo", v.payment && v.payment.venmo); sv("vpay_cashapp", v.payment && v.payment.cashapp);
+      sv("vpay_zelle", v.payment && v.payment.zelle); sv("vpay_other", v.payment && v.payment.other);
       ["mon","tue","wed","thu","fri","sat","sun"].forEach(function (d) { sv("vh_" + d, v.hours && v.hours[d]); });
       document.getElementById("vcat").value = v.cat;
     }
@@ -372,6 +447,12 @@ function subVendorForm() {
     contact: { phone: document.getElementById("vph").value.trim(), email: document.getElementById("vem").value.trim() },
     website: normalizeUrl(document.getElementById("vwb").value),
     social: { instagram: normalizeUrl(document.getElementById("vig").value) },
+    payment: {
+      venmo: document.getElementById("vpay_venmo").value.trim(),
+      cashapp: document.getElementById("vpay_cashapp").value.trim(),
+      zelle: document.getElementById("vpay_zelle").value.trim(),
+      other: document.getElementById("vpay_other").value.trim()
+    },
     hours: ["mon","tue","wed","thu","fri","sat","sun"].reduce(function (h, d) {
       var el = document.getElementById("vh_" + d);
       if (el && el.value.trim()) h[d] = el.value.trim();
@@ -380,7 +461,8 @@ function subVendorForm() {
     featured: false, verified: false,
     boost: { tier: null, active: false, until: "", radius: null },
     mx: 380 + (Math.random() - 0.5) * 120, my: 420 + (Math.random() - 0.5) * 80,
-    city: "sj", events: eventId ? [eventId] : [], gallery: [], logo: "", cover: "", status: "pending"
+    city: "sj", events: eventId ? [eventId] : [], gallery: [], logo: "", cover: "",
+    status: "pending", active: true, denialReason: "", createdAt: new Date().toISOString()
   };
   var isNew = !vid;
   function done() {
@@ -389,7 +471,9 @@ function subVendorForm() {
       if (i >= 0) {
         var old = vendors[i];
         v.featured = old.featured; v.boost = old.boost;
-        v.mx = old.mx; v.my = old.my; v.gallery = old.gallery; v.status = old.status;
+        v.mx = old.mx; v.my = old.my; v.gallery = old.gallery;
+        v.status = old.status; v.active = old.active; v.denialReason = old.denialReason;
+        v.createdAt = old.createdAt || v.createdAt;
         v.logo = v.logo || old.logo; v.cover = v.cover || old.cover;
         v.events = old.events || [];
         if (eventId && v.events.indexOf(eventId) < 0) v.events.push(eventId);
