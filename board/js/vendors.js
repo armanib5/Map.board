@@ -167,8 +167,9 @@ function openVendorDetail(id, fromEventId) {
 
 function shareVendor(id) {
   var v = vendors.find(function (x) { return x.id === id; }); if (!v) return;
-  if (navigator.share) navigator.share({ title: v.name, text: v.desc, url: location.href });
-  else { try { navigator.clipboard.writeText(location.href).then(function () { alert("Link copied!"); }); } catch (e) { alert("Copy the URL from your browser bar."); } }
+  if (navigator.share) { navigator.share({ title: v.name, text: v.desc, url: location.href }).catch(function () {}); return; }
+  if (!navigator.clipboard) { alert("Copy the URL from your browser bar."); return; }
+  navigator.clipboard.writeText(location.href).then(function () { alert("Link copied!"); }, function () { alert("Couldn't copy automatically - copy the URL from your browser bar."); });
 }
 
 function showVendorOnMap(id) {
@@ -284,6 +285,10 @@ function openVendorForm(defCat, vid, eventId) {
     "<label>Email</label><input id='vem' type='text' placeholder='hello@business.com'>" +
     "<label>Website</label><input id='vwb' type='text' placeholder='https://'>" +
     "<label>Instagram</label><input id='vig' type='text' placeholder='https://instagram.com/yourbiz'>" +
+    ["mon","tue","wed","thu","fri","sat","sun"].map(function (d) {
+      var lbl = d.charAt(0).toUpperCase() + d.slice(1) + " Hours";
+      return "<label>" + lbl + "</label><input id='vh_" + d + "' type='text' placeholder='e.g. 9am-5pm or Closed'>";
+    }).join("") +
     "<label>Logo (optional upload)</label><input id='vlg' type='file' accept='image/*'>" +
     "<label>Cover Photo (optional upload)</label><input id='vcv' type='file' accept='image/*'>" +
     "<div class='facts'><button class='bcan' id='vfrmCan'>Cancel</button><button class='bsub' id='vfrmSub'>Save Business</button></div>" +
@@ -300,6 +305,7 @@ function openVendorForm(defCat, vid, eventId) {
       sv("vn", v.name); sv("vd", v.desc); sv("vmenu", v.menu); sv("va", v.address);
       sv("vph", v.contact && v.contact.phone); sv("vem", v.contact && v.contact.email);
       sv("vwb", v.website); sv("vig", v.social && v.social.instagram);
+      ["mon","tue","wed","thu","fri","sat","sun"].forEach(function (d) { sv("vh_" + d, v.hours && v.hours[d]); });
       document.getElementById("vcat").value = v.cat;
     }
   }
@@ -309,6 +315,38 @@ function openVendorForm(defCat, vid, eventId) {
 function vCls() {
   document.getElementById("vfrmOv").classList.remove("on");
   document.getElementById("vfrmPanel").innerHTML = "";
+}
+
+/* "+ Add Your Business" used to always create a brand-new listing, even
+   for a vendor who already has one from a previous event - forcing them
+   to redo the whole menu/hours/contact form each time instead of just
+   linking their existing account to the new event. Now it offers to link
+   an existing listing first (if this device has one not already linked
+   to this event), and only falls through to the blank form for a
+   genuinely new business or once there's nothing left to link. */
+function startAddVendorFlow(cat, eventId) {
+  var mine = getMyVendorIds().map(function (id) { return vendors.find(function (x) { return x.id === id; }); }).filter(Boolean);
+  var unlinked = mine.filter(function (v) { return (v.events || []).indexOf(eventId) < 0; });
+  if (!unlinked.length) { openVendorForm(cat, "", eventId); return; }
+  var fp = document.getElementById("vfrmPanel");
+  var cards = unlinked.map(function (v) {
+    return "<div class='promo-card' data-vid='" + v.id + "'><h3>" + escHtml(v.name) + "</h3><p>Link this listing to this event - no new form to fill out.</p></div>";
+  }).join("");
+  fp.innerHTML = "<div class='fi'><h2>Add Your Business</h2>" +
+    "<p style='font-size:13px;margin-bottom:10px;'>You already have " + (unlinked.length > 1 ? "listings" : "a listing") + " on this device:</p>" +
+    "<div class='promo-cards'>" + cards + "</div>" +
+    "<div class='facts'><button class='bcan' id='vNewInstead'>+ New Business Instead</button></div></div>";
+  fp.querySelectorAll(".promo-card").forEach(function (card) {
+    card.onclick = function () {
+      var v = vendors.find(function (x) { return x.id === card.dataset.vid; });
+      if (!v) return;
+      v.events = v.events || [];
+      if (v.events.indexOf(eventId) < 0) v.events.push(eventId);
+      saveVendors(); vCls(); backToVendorHub(eventId);
+    };
+  });
+  document.getElementById("vNewInstead").onclick = function () { openVendorForm(cat, "", eventId); };
+  document.getElementById("vfrmOv").classList.add("on");
 }
 
 function subVendorForm() {
@@ -323,9 +361,14 @@ function subVendorForm() {
     menu: document.getElementById("vmenu").value.trim(),
     address: document.getElementById("va").value.trim(),
     contact: { phone: document.getElementById("vph").value.trim(), email: document.getElementById("vem").value.trim() },
-    website: document.getElementById("vwb").value.trim(),
-    social: { instagram: document.getElementById("vig").value.trim() },
-    hours: {}, featured: false, verified: false,
+    website: normalizeUrl(document.getElementById("vwb").value),
+    social: { instagram: normalizeUrl(document.getElementById("vig").value) },
+    hours: ["mon","tue","wed","thu","fri","sat","sun"].reduce(function (h, d) {
+      var el = document.getElementById("vh_" + d);
+      if (el && el.value.trim()) h[d] = el.value.trim();
+      return h;
+    }, {}),
+    featured: false, verified: false,
     boost: { tier: null, active: false, until: "", radius: null },
     mx: 380 + (Math.random() - 0.5) * 120, my: 420 + (Math.random() - 0.5) * 80,
     city: "sj", events: eventId ? [eventId] : [], gallery: [], logo: "", cover: "", status: "pending"
@@ -336,7 +379,7 @@ function subVendorForm() {
       var i = vendors.findIndex(function (x) { return x.id === vid; });
       if (i >= 0) {
         var old = vendors[i];
-        v.hours = old.hours; v.featured = old.featured; v.boost = old.boost;
+        v.featured = old.featured; v.boost = old.boost;
         v.mx = old.mx; v.my = old.my; v.gallery = old.gallery; v.status = old.status;
         v.logo = v.logo || old.logo; v.cover = v.cover || old.cover;
         v.events = old.events || [];
@@ -356,7 +399,7 @@ function subVendorForm() {
        vCls()/openDetail() above finish settling before the promo
        overlay stacks on top. */
     if (isNew && typeof openPromoPicker === "function") {
-      setTimeout(function () { openPromoPicker(v.id); }, 250);
+      setTimeout(function () { openPromoPicker(v.id, undefined, true); }, 250);
     }
   }
   var logoFile = document.getElementById("vlg").files[0];
