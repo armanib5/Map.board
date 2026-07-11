@@ -126,6 +126,10 @@ var DEF=[
 
 var KEY="pinnedsj-v9",evts=[],mS=1,mX=0,mY=0,pan=false,ps={x:0,y:0};
 
+/* Shared legal/safety copy - used on the Report form and the payment
+   disclaimer gate, so the wording stays identical everywhere it appears. */
+var PLATFORM_DISCLAIMER="Please note: Citypinned is an interactive advertising directory and does not host, process, or hold funds for any transactions. Submitting this report alerts our moderation team to review the vendor's platform safety status. Citypinned cannot issue refunds, reverse external app transfers, or resolve financial disputes between parties. For payment issues, please contact your peer-to-peer application or financial institution directly.";
+
 /* Website/social links people type without a protocol (e.g. "mysite.com")
    render as a relative link and silently go nowhere when clicked - this
    normalizes them to an absolute https:// URL so Website/Instagram/etc.
@@ -583,7 +587,8 @@ function openDetail(id){
   var sh=document.createElement("button");sh.className="ab gray";sh.textContent="Share";sh.onclick=(function(id){return function(){shareEv(id);};})(ev.id);
   var ed=document.createElement("button");ed.className="ab green";ed.textContent="Edit";ed.onclick=(function(id){return function(){editEv(id);};})(ev.id);
   var dl=document.createElement("button");dl.className="ab dark";dl.textContent="Remove";dl.onclick=(function(id){return function(){delEv(id);};})(ev.id);
-  btns.appendChild(sh);btns.appendChild(ed);btns.appendChild(dl);
+  var rp=document.createElement("button");rp.className="ab gray";rp.textContent="Report";rp.onclick=(function(id,t){return function(){openReportForm("event",id,t);};})(ev.id,ev.t);
+  btns.appendChild(sh);btns.appendChild(ed);btns.appendChild(dl);btns.appendChild(rp);
   body.appendChild(btns);
 
   dp.appendChild(body);

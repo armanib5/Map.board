@@ -61,6 +61,55 @@ function renderTab(tab) {
   else if (tab === "pins") renderPinsTab(el);
   else if (tab === "pricing") renderPricingTab(el);
   else if (tab === "hours") renderHoursTab(el);
+  else if (tab === "reports") renderReportsTab(el);
+}
+
+/* Reports come from the Board's "Report" button on flyers/vendors -
+   see supabase/migration_reports.sql, which needs to be run once before
+   this table exists. Reports table only lets an authenticated user
+   read/update rows, so this is the only place they're ever visible. */
+var reportsFilter = "new";
+function renderReportsTab(el) {
+  var sb = getSupabase();
+  sb.from("reports").select("*").order("created_at", { ascending: false }).then(function (res) {
+    if (res.error) {
+      el.innerHTML = "<p class='aempty'>" + res.error.message + " - have you run supabase/migration_reports.sql yet?</p>";
+      return;
+    }
+    el.innerHTML = "";
+    el.appendChild(statusFilterBarGeneric(reportsFilter, ["new", "reviewed", "dismissed", "all"], function (s) { reportsFilter = s; renderReportsTab(el); }));
+    var rows = reportsFilter === "all" ? res.data : res.data.filter(function (r) { return r.status === reportsFilter; });
+    if (!rows.length) { var p = document.createElement("p"); p.className = "aempty"; p.textContent = "No " + (reportsFilter === "all" ? "" : reportsFilter + " ") + "reports."; el.appendChild(p); return; }
+    rows.forEach(function (r) {
+      var row = document.createElement("div"); row.className = "eventcard"; row.style.alignItems = "flex-start"; row.style.flexDirection = "column";
+      row.innerHTML = "<span class='etitle'>" + (r.target_type === "vendor" ? "Vendor: " : "Event: ") + (r.target_name || r.target_id) +
+        " <span style='opacity:.6;font-size:11px;'>(" + r.reason + " &middot; " + new Date(r.created_at).toLocaleString() + ")</span></span>" +
+        "<p style='font-size:12.5px;margin:6px 0;color:#fff;'>" + r.details + "</p>";
+      if (r.status !== "reviewed") {
+        var reviewedBtn = document.createElement("button"); reviewedBtn.className = "abtn green"; reviewedBtn.textContent = "Mark Reviewed";
+        reviewedBtn.onclick = function () { sb.from("reports").update({ status: "reviewed" }).eq("id", r.id).then(function (res2) { if (res2.error) { alert(res2.error.message); return; } renderReportsTab(el); }); };
+        row.appendChild(reviewedBtn);
+      }
+      if (r.status !== "dismissed") {
+        var dismissBtn = document.createElement("button"); dismissBtn.className = "abtn gray"; dismissBtn.textContent = "Dismiss";
+        dismissBtn.onclick = function () { sb.from("reports").update({ status: "dismissed" }).eq("id", r.id).then(function (res2) { if (res2.error) { alert(res2.error.message); return; } renderReportsTab(el); }); };
+        row.appendChild(dismissBtn);
+      }
+      el.appendChild(row);
+    });
+  });
+}
+
+function statusFilterBarGeneric(current, options, onChange) {
+  var bar = document.createElement("div"); bar.className = "tabrow"; bar.style.cssText = "margin:0 0 12px;padding:0;";
+  options.forEach(function (s) {
+    var b = document.createElement("button");
+    b.className = "tabbtn" + (s === current ? " on" : "");
+    b.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+    b.onclick = function () { onChange(s); };
+    bar.appendChild(b);
+  });
+  return bar;
 }
 
 /* Approve/reject used to fail silently on any error (RLS denial, network
@@ -70,15 +119,7 @@ function renderTab(tab) {
 var vendorsFilter = "pending", pinsFilter = "pending";
 
 function statusFilterBar(current, onChange) {
-  var bar = document.createElement("div"); bar.className = "tabrow"; bar.style.cssText = "margin:0 0 12px;padding:0;";
-  ["pending", "approved", "rejected", "all"].forEach(function (s) {
-    var b = document.createElement("button");
-    b.className = "tabbtn" + (s === current ? " on" : "");
-    b.textContent = s.charAt(0).toUpperCase() + s.slice(1);
-    b.onclick = function () { onChange(s); };
-    bar.appendChild(b);
-  });
-  return bar;
+  return statusFilterBarGeneric(current, ["pending", "approved", "rejected", "all"], onChange);
 }
 
 function renderVendorsTab(el) {
