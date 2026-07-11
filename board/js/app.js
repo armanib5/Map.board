@@ -139,6 +139,12 @@ function normalizeUrl(s){
 }
 
 document.getElementById("zOv").onclick=function(){this.classList.remove("on");};
+document.getElementById("zOvClose").onclick=function(e){e.stopPropagation();document.getElementById("zOv").classList.remove("on");};
+function zoomPhoto(url){
+  if(!url)return;
+  document.getElementById("zImg").src=url;
+  document.getElementById("zOv").classList.add("on");
+}
 document.getElementById("postBtn").onclick=function(){openForm("");};
 document.getElementById("postBtn2").onclick=function(){openForm("");};
 
@@ -528,8 +534,12 @@ function openDetail(id){
   dp.appendChild(vhBtn);
 
   var hero=document.createElement("div");hero.className="dhero"+(ev.photo?" hp":"");
-  if(ev.photo){hero.style.backgroundImage="url("+ev.photo+")";hero.style.backgroundSize="cover";hero.style.backgroundPosition="center";}
-  else{hero.innerHTML=ico;}
+  if(ev.photo){
+    hero.style.backgroundImage="url("+ev.photo+")";hero.style.backgroundSize="cover";hero.style.backgroundPosition="center";
+    var zoomBtn=document.createElement("button");zoomBtn.className="photozoom";zoomBtn.innerHTML="&#128269;";zoomBtn.title="View full photo";
+    zoomBtn.onclick=function(e){e.stopPropagation();zoomPhoto(ev.photo);};
+    hero.appendChild(zoomBtn);
+  }else{hero.innerHTML=ico;}
   dp.appendChild(hero);
 
   var body=document.createElement("div");body.className="dbody";body.id="infoView";
@@ -541,7 +551,9 @@ function openDetail(id){
   var dloc=document.createElement("div");dloc.className="dloc";
   var dadr=document.createElement("span");dadr.className="dadr";dadr.textContent=ev.a;
   var mapBtn=document.createElement("a");mapBtn.className="ab blue";mapBtn.href=mu;mapBtn.target="_blank";mapBtn.textContent="Open in Maps";
-  dloc.appendChild(dadr);dloc.appendChild(mapBtn);
+  var pinBtn=document.createElement("a");pinBtn.className="ab gold";pinBtn.textContent="Add to Map";
+  pinBtn.href="../pins/index.html?title="+encodeURIComponent(ev.t)+"&addr="+encodeURIComponent(ev.a)+"&cat="+encodeURIComponent(ev.cat);
+  dloc.appendChild(dadr);dloc.appendChild(mapBtn);dloc.appendChild(pinBtn);
 
   body.appendChild(rib);body.appendChild(h2);body.appendChild(dw);body.appendChild(dloc);
 

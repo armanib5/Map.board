@@ -114,8 +114,12 @@ body{font-family:'Libre Franklin',sans-serif;color:var(--ink);background:#1a0800
 .vhbtn.back{background:var(--go);}
 .dpanel{transition:transform .17s ease,opacity .17s ease;}
 .dpanel.flip-out{transform:scaleX(.06);opacity:.35;}
-.dhero{width:100%;height:200px;background:linear-gradient(135deg,#e0d0a0,#c8b880);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:56px;}
+.dhero{width:100%;height:200px;background:linear-gradient(135deg,#e0d0a0,#c8b880);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:56px;position:relative;}
 .dhero.hp{font-size:0;}
+.photozoom{position:absolute;bottom:11px;right:11px;width:35px;height:35px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:2px solid #fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;}
+.photozoom:hover{background:rgba(0,0,0,.75);}
+.zov-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:2px solid #fff;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2001;}
+.zov-close:hover{background:rgba(255,255,255,.28);}
 .dbody{padding:18px 20px 28px;}
 .dbody h2{font-family:'Special Elite',monospace;font-size:21px;color:#1a0800;margin-bottom:6px;}
 .dw{font-weight:700;font-size:14px;color:#8B2500;margin-bottom:5px;}

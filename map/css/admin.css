@@ -50,13 +50,14 @@
 .pendinglist span{background:rgba(218,184,112,.15);border-radius:10px;padding:2px 8px;margin-right:6px;display:inline-block;margin-bottom:4px;}
 
 /* Tab switcher between Pins&Zones and Events&Flyers sections */
-.tabrow{display:flex;gap:8px;max-width:1100px;margin:14px auto 0;padding:0 14px;}
+.tabrow{display:flex;gap:8px;max-width:1100px;margin:14px auto 0;padding:0 14px;flex-wrap:wrap;}
 .tabbtn{font-family:'Special Elite',monospace;font-size:12.5px;background:rgba(255,255,255,.05);color:rgba(218,184,112,.75);border:1px solid rgba(218,184,112,.25);padding:9px 16px;border-radius:8px 8px 0 0;cursor:pointer;}
 .tabbtn.on{background:#14100a;color:var(--cl);border-bottom-color:#14100a;}
 
 /* Events & Flyers list */
 .eventlist{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
-.eventcard{background:rgba(255,255,255,.05);border:1px solid rgba(218,184,112,.22);border-radius:6px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;}
+.eventcard{background:rgba(255,255,255,.05);border:1px solid rgba(218,184,112,.22);border-radius:6px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.eventcard .etitle{min-width:140px;}
 .eventcard:hover{border-color:rgba(218,184,112,.5);}
 .eventcard .ecat{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 7px;border-radius:3px;color:#fff;flex-shrink:0;}
 .eventcard .etitle{font-size:13px;color:#fff;flex:1;}

@@ -68,8 +68,12 @@ function openVendorDetail(id, fromEventId) {
   }
 
   var hero = document.createElement("div"); hero.className = "dhero" + (v.cover ? " hp" : "");
-  if (v.cover) { hero.style.backgroundImage = "url(" + v.cover + ")"; hero.style.backgroundSize = "cover"; hero.style.backgroundPosition = "center"; }
-  else { hero.innerHTML = v.logo ? v.logo : cat.i; }
+  if (v.cover) {
+    hero.style.backgroundImage = "url(" + v.cover + ")"; hero.style.backgroundSize = "cover"; hero.style.backgroundPosition = "center";
+    var zoomBtn = document.createElement("button"); zoomBtn.className = "photozoom"; zoomBtn.innerHTML = "&#128269;"; zoomBtn.title = "View full photo";
+    zoomBtn.onclick = function (e) { e.stopPropagation(); zoomPhoto(v.cover); };
+    hero.appendChild(zoomBtn);
+  } else { hero.innerHTML = v.logo ? v.logo : cat.i; }
   dp.appendChild(hero);
 
   var body = document.createElement("div"); body.className = "dbody";
@@ -94,6 +98,11 @@ function openVendorDetail(id, fromEventId) {
   var dadr = document.createElement("span"); dadr.className = "dadr"; dadr.textContent = v.address || "Address on file";
   var mapBtn = document.createElement("a"); mapBtn.className = "ab blue"; mapBtn.href = mu; mapBtn.target = "_blank"; mapBtn.textContent = "Open in Maps";
   dloc.appendChild(dadr); dloc.appendChild(mapBtn);
+  if (v.address) {
+    var pinBtn = document.createElement("a"); pinBtn.className = "ab green"; pinBtn.textContent = "Add to Map";
+    pinBtn.href = "../pins/index.html?title=" + encodeURIComponent(v.name) + "&addr=" + encodeURIComponent(v.address) + "&cat=" + encodeURIComponent(v.cat);
+    dloc.appendChild(pinBtn);
+  }
   body.appendChild(dloc);
 
   var desc = document.createElement("p"); desc.className = "ddesc"; desc.textContent = v.desc || "No description yet.";
