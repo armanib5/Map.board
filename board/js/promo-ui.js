@@ -168,7 +168,7 @@ function renderPromoCheckout() {
     "<div class='promo-summary'>" + summary + "<br><b>Total: $" + amount + "</b></div>" +
     "<div id='promoCkErr'></div>" +
     "<p style='font-size:11px;line-height:1.5;color:rgba(90,65,30,.75);margin:10px 0;'>" + PLATFORM_DISCLAIMER + "</p>" +
-    "<label style='display:flex;align-items:flex-start;gap:8px;font-size:12.5px;'><input type='checkbox' id='payAgree' style='margin-top:3px;flex-shrink:0;'> I agree that Citypinned is an advertising directory only, does not process this payment, and cannot issue refunds or resolve disputes.</label>" +
+    "<label style='display:flex;align-items:flex-start;gap:8px;font-size:12.5px;'><input type='checkbox' id='payAgree' style='margin-top:3px;flex-shrink:0;'> I agree that BayPinned and its sister city networks (including Citypinned) are advertising directories only, do not process this payment, and cannot issue refunds or resolve disputes.</label>" +
     "<div id='payInfoWrap' style='display:none;margin-top:12px;'></div>" +
     "<div class='facts'>" +
     "<button class='bcan' id='promoCloseBtn'>Cancel</button>" +
