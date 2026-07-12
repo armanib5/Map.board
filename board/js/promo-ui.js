@@ -86,7 +86,7 @@ function renderPromoHourStep() {
   var hours = openHoursFor(ev, promoState.type);
   var p = document.getElementById("promoPanel");
   var grid = hours.map(function (h) {
-    var label = h.status === "open" ? "Open" : h.status === "full" ? "Full" : "Closed";
+    var label = h.status === "open" ? "Open" : h.status === "full" ? "Full" : h.status === "past" ? "Ended" : "Closed";
     return "<button class='hourbtn" + (h.status !== "open" ? " " + h.status : "") + "' data-hour='" + h.hour + "'" + (h.status !== "open" ? " disabled" : "") + ">" + fmtHour(h.hour) + "<span class='hbstat'>" + label + "</span></button>";
   }).join("");
   p.innerHTML = "<div class='promo-step'>" +

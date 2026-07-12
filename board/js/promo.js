@@ -114,9 +114,21 @@ function freeSlotsFor(eventId, date, hour, type) {
   for (var i = 0; i < total; i++) if (taken.indexOf(i) < 0) free.push(i);
   return free;
 }
+/* Whether an hour-slot has already fully elapsed for today's occurrence -
+   without this, someone could pick and "confirm" a 1pm slot at 4pm and get
+   an immediately-expired booking with no warning, which just looks like
+   checkout is broken. */
+function isPastHour(dateStr, hour) {
+  var now = new Date();
+  var pad = function (n) { return n < 10 ? "0" + n : "" + n; };
+  var todayLocal = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
+  if (dateStr !== todayLocal) return false;
+  return (hour + 1) <= (now.getHours() + now.getMinutes() / 60);
+}
 function hourStatus(ev, hour, type) {
   if (closedHoursFor(ev.id).indexOf(hour) >= 0) return "closed";
   var date = nextOccurrenceDate(ev);
+  if (isPastHour(date, hour)) return "past";
   var need = MIN_FREE_TO_STAY_OPEN[type] || 1;
   if (freeSlotsFor(ev.id, date, hour, type).length < need) return "full";
   return "open";
