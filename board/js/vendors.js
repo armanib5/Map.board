@@ -462,7 +462,13 @@ function subVendorForm() {
     boost: { tier: null, active: false, until: "", radius: null },
     mx: 380 + (Math.random() - 0.5) * 120, my: 420 + (Math.random() - 0.5) * 80,
     city: "sj", events: eventId ? [eventId] : [], gallery: [], logo: "", cover: "",
-    status: "pending", active: true, denialReason: "", createdAt: new Date().toISOString()
+    /* This listing only ever lives in the vendor's own browser - nobody
+       else's device can see or approve it, so gating it behind "pending"
+       just hid it from the one person who's supposed to see it: the
+       vendor themselves, right after they filled out the form. Approved
+       immediately; the admin history table below can still deactivate
+       one if needed. */
+    status: "approved", active: true, denialReason: "", createdAt: new Date().toISOString()
   };
   var isNew = !vid;
   function done() {
