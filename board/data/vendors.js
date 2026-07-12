@@ -97,5 +97,34 @@ var VENDOR_DEF = [
    hours:{mon:"11:00am - 9:00pm",tue:"11:00am - 9:00pm",wed:"11:00am - 9:00pm",thu:"11:00am - 9:00pm",fri:"11:00am - 9:00pm",sat:"11:00am - 9:00pm",sun:"11:00am - 9:00pm"},
    featured:false,verified:false,
    boost:{tier:null,active:false,until:"",radius:null},
-   mx:460,my:605,city:"sj",events:["sm"],gallery:[],logo:"",cover:"",status:"approved"}
+   mx:460,my:605,city:"sj",events:["sm"],gallery:[],logo:"",cover:"",status:"approved"},
+
+  /* Two test vendors seeded pending for the Mariachi Festival, ready to
+     practice approving in admin - matches the checkout flow verified
+     working (free today, correct 1-8pm hour window, no card fields). */
+  {id:"v-mariachi-test-featured",name:"Tamales de Rosa (Featured Test)",cat:"foodhall",
+   desc:"Test vendor for practicing the Featured approval flow.",
+   menu:"Tamales, horchata, elote.",
+   address:"Plaza de Cesar Chavez, San Jose, CA 95113",
+   contact:{phone:"",email:""},website:"",
+   social:{instagram:"",facebook:"",tiktok:"",twitter:""},
+   payment:{venmo:"@rosa-tamales-test",cashapp:"",zelle:"",other:""},
+   hours:{mon:"",tue:"",wed:"",thu:"",fri:"",sat:"",sun:""},
+   featured:false,verified:false,
+   boost:{tier:null,active:false,until:"",radius:null},
+   mx:342,my:498,city:"sj",events:["mariachi2026"],gallery:[],logo:"",cover:"",
+   status:"pending",active:true,denialReason:"",createdAt:new Date().toISOString()},
+
+  {id:"v-mariachi-test-boost",name:"Elote Man (Boost Test)",cat:"foodhall",
+   desc:"Test vendor for practicing the Boost approval flow.",
+   menu:"Elote, esquites, aguas frescas.",
+   address:"Plaza de Cesar Chavez, San Jose, CA 95113",
+   contact:{phone:"",email:""},website:"",
+   social:{instagram:"",facebook:"",tiktok:"",twitter:""},
+   payment:{venmo:"",cashapp:"$elote-man-test",zelle:"",other:""},
+   hours:{mon:"",tue:"",wed:"",thu:"",fri:"",sat:"",sun:""},
+   featured:false,verified:false,
+   boost:{tier:null,active:false,until:"",radius:null},
+   mx:352,my:498,city:"sj",events:["mariachi2026"],gallery:[],logo:"",cover:"",
+   status:"pending",active:true,denialReason:"",createdAt:new Date().toISOString()}
 ];
