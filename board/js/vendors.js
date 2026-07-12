@@ -106,8 +106,8 @@ function openVendorDetail(id, fromEventId) {
   var mapBtn = document.createElement("a"); mapBtn.className = "ab blue"; mapBtn.href = mu; mapBtn.target = "_blank"; mapBtn.textContent = "Open in Maps";
   dloc.appendChild(dadr); dloc.appendChild(mapBtn);
   if (v.address) {
-    var pinBtn = document.createElement("a"); pinBtn.className = "ab green"; pinBtn.textContent = "Add to Map";
-    pinBtn.href = "../pins/index.html?title=" + encodeURIComponent(v.name) + "&addr=" + encodeURIComponent(v.address) + "&cat=" + encodeURIComponent(v.cat);
+    var pinBtn = document.createElement("a"); pinBtn.className = "ab green"; pinBtn.textContent = "Find on Our Map";
+    pinBtn.href = "../map/index.html?q=" + encodeURIComponent(v.name);
     dloc.appendChild(pinBtn);
   }
   body.appendChild(dloc);
@@ -353,7 +353,8 @@ function openVendorForm(defCat, vid, eventId) {
   var fp = document.getElementById("vfrmPanel");
   var opts = Object.entries(C).map(function (e) { return "<option value='" + e[0] + "'>" + e[1].l + "</option>"; }).join("");
   fp.innerHTML = "<div class='fi'><h2>" + (vid ? "Edit Your Business" : "Add Your Business") + "</h2>" +
-    "<label>Business Name *</label><input id='vn' type='text' placeholder='e.g. Xiong Farms'>" +
+    "<label>Business Name *</label><input id='vn' type='text' list='vnList' placeholder='e.g. Xiong Farms' autocomplete='off'>" +
+    "<datalist id='vnList'></datalist>" +
     "<label>Category</label><select id='vcat'>" + opts + "</select>" +
     "<label>Description</label><textarea id='vd' placeholder='Tell customers about your business...'></textarea>" +
     "<label>Menu / Offerings</label><textarea id='vmenu' placeholder='List a few items or paste a menu link...'></textarea>" +
@@ -377,6 +378,13 @@ function openVendorForm(defCat, vid, eventId) {
     "</div>";
   fp.dataset.vid = vid || "";
   fp.dataset.eventId = eventId || "";
+  /* Suggests existing business names while typing so someone re-adding
+     their own (or a friend's) listing notices it's already there instead
+     of quietly creating a lookalike duplicate. */
+  document.getElementById("vnList").innerHTML = vendors
+    .filter(function (x) { return x.id !== vid; })
+    .map(function (x) { return "<option value='" + x.name.replace(/'/g, "&#39;") + "'>"; })
+    .join("");
   if (defCat) document.getElementById("vcat").value = defCat;
   document.getElementById("vfrmCan").onclick = vCls;
   document.getElementById("vfrmSub").onclick = subVendorForm;

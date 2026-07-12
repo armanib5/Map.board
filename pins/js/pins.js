@@ -24,7 +24,26 @@ function init() {
   document.getElementById("btnSubmitPin").onclick = submitPin;
   document.getElementById("btnClearPin").onclick = clearPin;
   drawEventZones();
+  suggestExistingNames();
   prefillFromQuery();
+}
+
+/* Populates the name/title fields' suggestion lists from pins already
+   submitted (any status) so someone placing themselves notices a
+   lookalike already exists instead of quietly creating a duplicate. */
+function suggestExistingNames() {
+  var sb = getSupabase();
+  sb.from("pins").select("title, owner_name").then(function (res) {
+    if (res.error || !res.data) return;
+    var titles = {}, owners = {};
+    res.data.forEach(function (p) {
+      if (p.title) titles[p.title] = true;
+      if (p.owner_name) owners[p.owner_name] = true;
+    });
+    function esc(s) { return s.replace(/'/g, "&#39;"); }
+    document.getElementById("pTitleList").innerHTML = Object.keys(titles).map(function (t) { return "<option value='" + esc(t) + "'>"; }).join("");
+    document.getElementById("pOwnerList").innerHTML = Object.keys(owners).map(function (o) { return "<option value='" + esc(o) + "'>"; }).join("");
+  });
 }
 
 /* Shows any active event's street-closure zone (drawn in map/admin.html)

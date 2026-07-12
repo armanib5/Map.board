@@ -41,7 +41,8 @@
         <div class="modehint" id="locHint">Tap the map above to place your pin.</div>
         <div class="formgrid">
           <label>Your name or business
-            <input id="pOwner" type="text" placeholder="e.g. Rosa's Tamales">
+            <input id="pOwner" type="text" list="pOwnerList" placeholder="e.g. Rosa's Tamales" autocomplete="off">
+            <datalist id="pOwnerList"></datalist>
           </label>
           <label>Category
             <select id="pCat">
@@ -62,7 +63,8 @@
             </select>
           </label>
           <label class="full">What's here?
-            <input id="pTitle" type="text" placeholder="e.g. Tamales and horchata pop-up">
+            <input id="pTitle" type="text" list="pTitleList" placeholder="e.g. Tamales and horchata pop-up" autocomplete="off">
+            <datalist id="pTitleList"></datalist>
           </label>
           <label class="full">Address (auto-filled from your map tap — edit if it's off)
             <input id="pAddr" type="text" placeholder="Tap the map first">

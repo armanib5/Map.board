@@ -198,9 +198,9 @@ function nearestHood(lat, lng) {
    /admin/ actually shows up on the live map instead of only updating a
    database row nobody sees. */
 function loadApprovedPins() {
-  if (typeof isSupabaseConfigured !== "function" || !isSupabaseConfigured()) return;
+  if (typeof isSupabaseConfigured !== "function" || !isSupabaseConfigured()) return Promise.resolve();
   var sb = getSupabase();
-  sb.from("pins").select("*").eq("status", "approved").then(function (res) {
+  return sb.from("pins").select("*").eq("status", "approved").then(function (res) {
     if (res.error || !res.data || !res.data.length) return;
     res.data.forEach(function (p) {
       var loc = nearestHood(p.lat, p.lng);
@@ -216,6 +216,26 @@ function loadApprovedPins() {
     updateLegendCounts();
     applyFilters();
   });
+}
+
+/* A vendor's "Find on Our Map" button lands here with ?q=<name> instead
+   of jumping straight to /pins/ to create a new pin - this runs the same
+   search the search box does (now that live-approved pins are loaded)
+   so an already-pinned vendor gets found instead of duplicated. Waits
+   for loadApprovedPins() so a pin someone else just submitted is
+   actually in PLACES by the time this searches it. */
+function handleSearchQuery() {
+  var params = new URLSearchParams(location.search);
+  var q = params.get("q");
+  if (!q) return;
+  var input = document.getElementById("msInput"), clear = document.getElementById("msClear");
+  if (input) {
+    input.value = q;
+    if (clear) clear.classList.add("show");
+    input.dispatchEvent(new Event("input"));
+  }
+  var matches = PLACES.filter(function (p) { return p.t.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+  if (matches.length === 1) selectPlace(matches[0]);
 }
 
 /* Builds a red "active zone" outline for any place that defines one (a
@@ -528,7 +548,7 @@ function initMap() {
   renderHoodRow();
   initFilterRow();
   initSearch();
-  loadApprovedPins();
+  loadApprovedPins().then(handleSearchQuery);
 
   document.getElementById("zIn").onclick = function () { map.stop(); map.zoomIn(); };
   document.getElementById("zOut").onclick = function () { map.stop(); map.zoomOut(); };
