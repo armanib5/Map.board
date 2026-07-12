@@ -15,7 +15,7 @@ var PROMO_BOOK_KEY = "promo-bookings-v1";
 var PROMO_HOURS_KEY = "promo-hours-v1";
 var MY_VENDORS_KEY = "my-vendor-ids-v1";
 
-function getPricing() { return Storage.get(PROMO_PRICE_KEY, { boost: 15, featured: 30 }); }
+function getPricing() { return Storage.get(PROMO_PRICE_KEY, { boost: 0, featured: 0 }); }
 function setPricing(p) { return Storage.set(PROMO_PRICE_KEY, p); }
 
 /* Boost sells two 10-minute slots (six per hour) inside one chosen

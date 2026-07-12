@@ -121,7 +121,15 @@ var DEF=[
  tags:["Theater","Broadway","Concerts","Dance"],photo:"",g:[],mx:200,my:565,ed:"",ms:"",
  pk:"Adjacent garages. Convention Center garage nearby.",tr:"VTA Convention Center light rail stop 5 min walk.",
  ac:"Fully accessible large venue.",fam:"Many family-friendly shows.",
- fp:"8 min walk",fd:"15 min walk",vg:[]}
+ fp:"8 min walk",fd:"15 min walk",vg:[]},
+{id:"mariachi2026",cat:"holiday",lbl:"Live Festival",exp:false,
+ t:"Mariachi Festival",w:"Today 1pm - 8pm",d:"2026-07-12",sh:13,eh:20,
+ a:"Plaza de Cesar Chavez, San Jose, CA 95113",ph:"",wb:"https://tr.ee/6G_IJFtshX",
+ ds:"Mariachi Festival at Plaza de Cesar Chavez, 1-8pm today - live music with vendors along the street.",
+ tags:["Live Music","Festival","Tickets","Family"],photo:"",g:[],mx:342,my:498,ed:"2026-07-12",ms:"",
+ pk:"Contact organizer.",tr:"VTA Convention Center stop, short walk.",
+ ac:"Contact organizer.",fam:"Family friendly festival.",
+ fp:"At Plaza de Cesar Chavez",fd:"See Google Maps",vg:[]}
 ];
 
 var KEY="pinnedsj-v9",evts=[],mS=1,mX=0,mY=0,pan=false,ps={x:0,y:0};
