@@ -37,12 +37,12 @@ function submitReport(targetType, targetId, targetName) {
   if (!reason || !details) {
     err.textContent = "Please pick a reason and add details."; err.style.display = "block"; return;
   }
-  if (!isSupabaseConfigured()) {
-    err.textContent = "Reporting isn't connected yet - see supabase/migration_reports.sql."; err.style.display = "block"; return;
+  var sb = getSupabase();
+  if (!sb) {
+    err.textContent = "Couldn't reach the reporting service right now - check your connection and try again."; err.style.display = "block"; return;
   }
   var btn = document.getElementById("rpSubmit");
   btn.disabled = true; btn.textContent = "Submitting…";
-  var sb = getSupabase();
   sb.from("reports").insert({
     target_type: targetType, target_id: String(targetId), target_name: targetName,
     reason: reason, details: details

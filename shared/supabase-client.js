@@ -4,16 +4,26 @@
    tag in each page before this file, and shared/supabase-config.js,
    also loaded before this file. */
 
+/* Also checks the Supabase SDK itself actually loaded (not just that the
+   config strings look right) - a slow/blocked CDN (ad blockers, flaky
+   network, a CDN hiccup) used to throw an uncaught "supabase is not
+   defined" straight out of getSupabase() instead of falling through to
+   the friendly "not connected" message every caller already checks for. */
 function isSupabaseConfigured() {
   return typeof SUPABASE_URL === "string" && SUPABASE_URL.indexOf("supabase.co") > 0 &&
-    typeof SUPABASE_ANON_KEY === "string" && SUPABASE_ANON_KEY.length > 20;
+    typeof SUPABASE_ANON_KEY === "string" && SUPABASE_ANON_KEY.length > 20 &&
+    typeof supabase !== "undefined";
 }
 
 var _sbClient = null;
 function getSupabase() {
   if (!isSupabaseConfigured()) return null;
-  if (!_sbClient) _sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  return _sbClient;
+  try {
+    if (!_sbClient) _sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return _sbClient;
+  } catch (e) {
+    return null;
+  }
 }
 
 /* Renders a friendly "not connected yet" notice into a container -
