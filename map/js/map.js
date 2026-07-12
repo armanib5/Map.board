@@ -460,6 +460,36 @@ function locateUser() {
   }, { enableHighAccuracy: true, timeout: 8000 });
 }
 
+/* Asks for location the moment the map opens (rather than waiting for
+   someone to notice and press "My Location"), so the map centers on
+   what's actually around them instead of always defaulting to Downtown
+   San Jose. Silent on denial/unavailable - the default view just stands,
+   no nagging alert like the manual My Location button gives. */
+function promptLocationOnLoad() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    if (userMarker) map.removeLayer(userMarker);
+    userMarker = L.circleMarker([userLoc.lat, userLoc.lng], {
+      radius: 8, color: "#fff", weight: 2, fillColor: "#2c5f8a", fillOpacity: 1
+    }).addTo(map);
+    var loc = nearestHood(userLoc.lat, userLoc.lng);
+    if (loc.city !== activeCity) {
+      activeCity = loc.city;
+      document.querySelectorAll(".citytab").forEach(function (x) { x.classList.toggle("on", x.dataset.cityId === activeCity); });
+      renderHoodRow();
+    }
+    var hoodObj = activeCityObj().hoods.find(function (h) { return h.id === loc.hood; });
+    if (hoodObj) {
+      activeHood = hoodObj.id;
+      document.querySelectorAll(".hoodbtn").forEach(function (x) { x.classList.toggle("on", x.dataset.hoodId === activeHood); });
+      setAreaLabel(hoodObj.l, hoodHasPlaces(hoodObj.id));
+      applyFilters();
+    }
+    flyTo(userLoc.lat, userLoc.lng, 16);
+  }, function () {}, { enableHighAccuracy: true, timeout: 8000 });
+}
+
 function initLegend() {
   var lg = document.getElementById("mapLegend");
   CAT_ORDER.forEach(function (cat) {
@@ -503,6 +533,7 @@ function initMap() {
   document.getElementById("myLoc").onclick = locateUser;
   document.getElementById("flyerClose").onclick = hideFlyer;
   map.on("click", hideFlyer);
+  promptLocationOnLoad();
 }
 
 document.addEventListener("DOMContentLoaded", initMap);
