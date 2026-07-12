@@ -59,7 +59,7 @@ function renderTab(tab) {
   if (tab === "vendors") renderVendorsTab(el);
   else if (tab === "bookings") renderBookingsTab(el);
   else if (tab === "pins") renderPinsTab(el);
-  else if (tab === "pricing") renderPricingTab(el);
+  else if (tab === "cities") renderCitiesTab(el);
   else if (tab === "hours") renderHoursTab(el);
   else if (tab === "reports") renderReportsTab(el);
 }
@@ -224,22 +224,86 @@ function renderBookingsTab(el) {
   });
 }
 
-function renderPricingTab(el) {
+/* Cities/Neighborhoods management - replaces the old Pricing tab, which
+   edited a Supabase promo_pricing row that nothing on the live Board
+   actually reads (Board's real Boost/Featured prices live in its own
+   local storage, set from its own admin panel) - actual prices are
+   untouched by this change. cities/neighborhoods are real Supabase
+   tables with full RLS already in place; this is their first UI. */
+function renderCitiesTab(el) {
   var sb = getSupabase();
-  sb.from("promo_pricing").select("*").eq("id", 1).single().then(function (res) {
-    if (res.error) { el.innerHTML = "<p class='aempty'>" + res.error.message + "</p>"; return; }
-    var p = res.data;
-    el.innerHTML = "<div class='formgrid'>" +
-      "<label>Boost price ($)<input id='priceBoost' type='number' min='0' step='1' value='" + p.boost_price + "'></label>" +
-      "<label>Featured price ($)<input id='priceFeatured' type='number' min='0' step='1' value='" + p.featured_price + "'></label>" +
-      "</div><button class='abtn green' id='savePricingBtn' style='margin-top:10px;'>Save Pricing</button>";
-    document.getElementById("savePricingBtn").onclick = function () {
-      var b = parseFloat(document.getElementById("priceBoost").value) || 0;
-      var f = parseFloat(document.getElementById("priceFeatured").value) || 0;
-      sb.from("promo_pricing").update({ boost_price: b, featured_price: f }).eq("id", 1).then(function (r) {
-        alert(r.error ? r.error.message : "Pricing updated.");
-      });
+  Promise.all([
+    sb.from("cities").select("*").order("label"),
+    sb.from("neighborhoods").select("*").order("label")
+  ]).then(function (results) {
+    var citiesRes = results[0], hoodsRes = results[1];
+    if (citiesRes.error) { el.innerHTML = "<p class='aempty'>" + citiesRes.error.message + "</p>"; return; }
+    if (hoodsRes.error) { el.innerHTML = "<p class='aempty'>" + hoodsRes.error.message + "</p>"; return; }
+    var cities = citiesRes.data, hoods = hoodsRes.data;
+    el.innerHTML = "";
+
+    var addCityWrap = document.createElement("div"); addCityWrap.className = "adminhint";
+    addCityWrap.innerHTML = "<div class='formgrid'>" +
+      "<label>New city ID<input id='newCityId' placeholder='e.g. oak'></label>" +
+      "<label>New city name<input id='newCityLabel' placeholder='e.g. Oakland'></label>" +
+      "</div><button class='abtn gold' id='addCityBtn' style='margin-top:10px;'>+ Add City</button>";
+    el.appendChild(addCityWrap);
+    document.getElementById("addCityBtn").onclick = function () {
+      var id = document.getElementById("newCityId").value.trim();
+      var label = document.getElementById("newCityLabel").value.trim();
+      if (!id || !label) { alert("Enter both an ID and a name."); return; }
+      sb.from("cities").insert({ id: id, label: label }).then(function (r) { if (r.error) { alert(r.error.message); return; } renderCitiesTab(el); });
     };
+
+    if (!cities.length) { var p = document.createElement("p"); p.className = "aempty"; p.textContent = "No cities yet."; el.appendChild(p); return; }
+
+    cities.forEach(function (c) {
+      var block = document.createElement("div"); block.className = "eventcard"; block.style.cssText = "flex-direction:column;align-items:stretch;margin-bottom:14px;";
+
+      var head = document.createElement("div"); head.style.cssText = "display:flex;align-items:center;gap:8px;flex-wrap:wrap;";
+      var title = document.createElement("span"); title.className = "etitle"; title.textContent = c.label + " (" + c.id + ")";
+      var renameBtn = document.createElement("button"); renameBtn.className = "abtn gray"; renameBtn.textContent = "Rename";
+      renameBtn.onclick = function () {
+        var newLabel = prompt("New name for " + c.id + ":", c.label);
+        if (!newLabel) return;
+        sb.from("cities").update({ label: newLabel }).eq("id", c.id).then(function (r) { if (r.error) { alert(r.error.message); return; } renderCitiesTab(el); });
+      };
+      var delCityBtn = document.createElement("button"); delCityBtn.className = "abtn red"; delCityBtn.textContent = "Delete City";
+      delCityBtn.onclick = function () {
+        if (!confirm("Delete " + c.label + " and all its neighborhoods? This can't be undone.")) return;
+        sb.from("cities").delete().eq("id", c.id).then(function (r) { if (r.error) { alert(r.error.message); return; } renderCitiesTab(el); });
+      };
+      head.appendChild(title); head.appendChild(renameBtn); head.appendChild(delCityBtn);
+      block.appendChild(head);
+
+      hoods.filter(function (h) { return h.city_id === c.id; }).forEach(function (h) {
+        var hrow = document.createElement("div");
+        hrow.style.cssText = "display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0 6px 16px;font-size:12.5px;color:rgba(218,184,112,.8);";
+        var hlabel = document.createElement("span"); hlabel.style.flex = "1"; hlabel.style.minWidth = "120px"; hlabel.textContent = h.label + " (" + h.id + ")";
+        var delHoodBtn = document.createElement("button"); delHoodBtn.className = "abtn red"; delHoodBtn.textContent = "Delete";
+        delHoodBtn.onclick = function () {
+          if (!confirm("Delete neighborhood " + h.label + "?")) return;
+          sb.from("neighborhoods").delete().eq("id", h.id).then(function (r) { if (r.error) { alert(r.error.message); return; } renderCitiesTab(el); });
+        };
+        hrow.appendChild(hlabel); hrow.appendChild(delHoodBtn);
+        block.appendChild(hrow);
+      });
+
+      var addHoodWrap = document.createElement("div"); addHoodWrap.style.cssText = "margin:10px 0 0 16px;";
+      addHoodWrap.innerHTML = "<div class='formgrid'>" +
+        "<label>New neighborhood ID<input id='newHoodId-" + c.id + "'></label>" +
+        "<label>Name<input id='newHoodLabel-" + c.id + "'></label>" +
+        "</div><button class='abtn gold' id='addHoodBtn-" + c.id + "' style='margin-top:8px;'>+ Add Neighborhood</button>";
+      block.appendChild(addHoodWrap);
+      addHoodWrap.querySelector("button").onclick = function () {
+        var hid = document.getElementById("newHoodId-" + c.id).value.trim();
+        var hlabel = document.getElementById("newHoodLabel-" + c.id).value.trim();
+        if (!hid || !hlabel) { alert("Enter both an ID and a name."); return; }
+        sb.from("neighborhoods").insert({ id: hid, city_id: c.id, label: hlabel }).then(function (r) { if (r.error) { alert(r.error.message); return; } renderCitiesTab(el); });
+      };
+
+      el.appendChild(block);
+    });
   });
 }
 
