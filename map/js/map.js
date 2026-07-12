@@ -145,6 +145,7 @@ function showFullDetail(id) {
   html += '<div class="dbtnrow">';
   html += '<a class="bp-btn blue" href="' + mu + '" target="_blank" rel="noopener">Directions</a>';
   if (p.wb) html += '<a class="bp-btn purple" href="' + p.wb + '" target="_blank" rel="noopener">Website</a>';
+  html += '<a class="bp-btn gold" href="../board/index.html?openFlyer=' + encodeURIComponent(p.t) + '">View/Edit on Board</a>';
   html += '</div>';
   document.getElementById("detailPanel").innerHTML = html;
   document.getElementById("detailOv").classList.add("on");

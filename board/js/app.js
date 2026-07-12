@@ -165,6 +165,22 @@ function init(){
   setupStickyOffsetWatcher();
   setupBgUpload();
   setCityBg(curCity,curHood);
+  openFlyerFromQuery();
+}
+
+/* Map pins have no real link back to a Board flyer (separate data -
+   PLACES/pins vs evts) - this is a best-effort bridge for map.js's
+   "View/Edit on Board" button, which passes the pin's title in the
+   URL. Matches by exact title (case-insensitive) since that's the only
+   thing both sides share; if you rename a flyer after pinning it on the
+   map, the link stops matching until the pin/flyer titles agree again. */
+function openFlyerFromQuery(){
+  var params=new URLSearchParams(location.search);
+  var title=params.get("openFlyer");
+  if(!title)return;
+  var match=evts.find(function(e){return e.t.toLowerCase()===title.toLowerCase();});
+  if(match)openDetail(match.id);
+  else alert("Couldn't find a flyer titled \""+title+"\" on the Board yet - post it here first, then the map link will work.");
 }
 
 /* The top nav wraps to 2-3 rows on narrow screens (logo/buttons/city
