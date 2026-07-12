@@ -23,7 +23,20 @@ function init() {
 
   document.getElementById("btnSubmitPin").onclick = submitPin;
   document.getElementById("btnClearPin").onclick = clearPin;
+  drawEventZones();
   prefillFromQuery();
+}
+
+/* Shows any active event's street-closure zone (drawn in map/admin.html)
+   as a dashed reference outline, so someone placing their own pin can see
+   where the event actually is instead of guessing from the address alone. */
+function drawEventZones() {
+  if (typeof PLACES === "undefined") return;
+  PLACES.forEach(function (p) {
+    if (!p.zone || p.zone.length < 3) return;
+    L.polygon(p.zone, { color: "#f59e0b", weight: 2, dashArray: "5 5", fillColor: "#f59e0b", fillOpacity: 0.08 })
+      .addTo(pinMap).bindTooltip(p.t, { permanent: false, direction: "center" });
+  });
 }
 
 /* "Add to Map" on a flyer/vendor's own detail view links here with
