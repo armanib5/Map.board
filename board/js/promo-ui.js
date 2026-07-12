@@ -163,6 +163,40 @@ function renderPromoCheckout() {
     fmtHour(promoState.hour) + " hour, " + slotWords;
   var payment = v.payment || {};
   var p = document.getElementById("promoPanel");
+
+  /* $0 means there's no actual payment to make, so the "get vendor
+     payment info / confirm I paid" dance is pure friction - it was
+     blocking free listings on vendors who hadn't filled in a Venmo/
+     Cash App handle, showing an "error" for something that was never
+     going to involve money. Skip straight to activating. */
+  if (amount === 0) {
+    p.innerHTML = "<div class='promo-step fi'>" +
+      "<div class='promo-head'><button class='promo-back' id='promoBackBtn'>&#8592;</button><h2>&#127881; " + typeLabel + " - Free Today</h2></div>" +
+      "<div class='promo-summary'>" + summary + "<br><b>Total: $0</b></div>" +
+      "<div id='promoCkErr'></div>" +
+      "<div class='facts'>" +
+      "<button class='bcan' id='promoCloseBtn'>Cancel</button>" +
+      "<button class='bsub' id='confirmFreeBtn'>Activate - It's Free</button>" +
+      "</div></div>";
+    document.getElementById("promoCloseBtn").onclick = promoCls;
+    document.getElementById("promoBackBtn").onclick = renderPromoSlotStep;
+    document.getElementById("confirmFreeBtn").onclick = function () {
+      var btn = document.getElementById("confirmFreeBtn");
+      btn.disabled = true; btn.textContent = "Activating…";
+      var result = type === "boost"
+        ? reserveBoost(promoState.eventId, promoState.vendorId, promoState.hour, promoState.slots)
+        : reserveFeatured(promoState.eventId, promoState.vendorId, promoState.hour, promoState.slots[0]);
+      if (!result.ok) {
+        document.getElementById("promoCkErr").innerHTML = "<div class='promo-err'>" + escHtml(result.reason) + "</div>";
+        btn.disabled = false; btn.textContent = "Activate - It's Free";
+        return;
+      }
+      if (v.status !== "approved") { v.status = "approved"; v.active = true; saveVendors(); }
+      renderPromoSuccess(result.booking);
+    };
+    return;
+  }
+
   p.innerHTML = "<div class='promo-step'>" +
     "<div class='promo-head'><button class='promo-back' id='promoBackBtn'>&#8592;</button><h2>&#128179; Pay the Vendor Directly</h2></div>" +
     "<div class='promo-summary'>" + summary + "<br><b>Total: $" + amount + "</b></div>" +
