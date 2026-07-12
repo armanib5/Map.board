@@ -3,6 +3,8 @@
    data/booking logic lives in js/promo.js. Depends on globals from
    js/app.js, js/vendors.js and js/promo.js. Loaded last. */
 
+function priceLabel(amount) { return amount === 0 ? "FREE" : "$" + amount; }
+
 function escHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -61,16 +63,16 @@ function renderPromoTypeStep() {
   var pricing = getPricing();
   var p = document.getElementById("promoPanel");
   var intro = promoState.isNewListing
-    ? "<p class='promo-sub'>" + escHtml(v.name) + " is live and free in " + escHtml(ev.t) + "'s Vendor Hub - no payment needed for that. These are optional paid upgrades for extra visibility.</p>"
-    : "<p class='promo-sub'>For: " + escHtml(ev.t) + "</p>";
+    ? "<p class='promo-sub'>" + escHtml(v.name) + " is live and free in " + escHtml(ev.t) + "'s Vendor Hub. These spotlight upgrades are free today too - no card, no payment, nothing to enter.</p>"
+    : "<p class='promo-sub'>For: " + escHtml(ev.t) + " - free today, no card or payment needed.</p>";
   var skipLabel = promoState.isNewListing ? "No thanks, stay free" : "Cancel";
   p.innerHTML = "<div class='promo-step'>" +
     "<div class='promo-head'><h2>Promote " + escHtml(v.name) + "</h2></div>" +
     intro +
     "<div class='promo-cards'>" +
-    "<div class='promo-card' id='pcBoost'><h3>&#128640; Boost</h3><span class='pc-price'>$" + pricing.boost + "</span>" +
+    "<div class='promo-card' id='pcBoost'><h3>&#128640; Boost</h3><span class='pc-price'>" + priceLabel(pricing.boost) + "</span>" +
     "<p>Two 10-minute slots (20 minutes total) during an event hour you pick. Puts your listing in the Top 10 spotlight while your slots run.</p></div>" +
-    "<div class='promo-card' id='pcFeatured'><h3>&#11088; Featured</h3><span class='pc-price'>$" + pricing.featured + "</span>" +
+    "<div class='promo-card' id='pcFeatured'><h3>&#11088; Featured</h3><span class='pc-price'>" + priceLabel(pricing.featured) + "</span>" +
     "<p>One 30-minute slot during an event hour you pick. Top-5 spotlight placement with a Featured badge while it runs.</p></div>" +
     "</div>" +
     "<div class='facts'><button class='bcan' id='promoCloseBtn'>" + skipLabel + "</button></div></div>";
@@ -172,7 +174,7 @@ function renderPromoCheckout() {
   if (amount === 0) {
     p.innerHTML = "<div class='promo-step fi'>" +
       "<div class='promo-head'><button class='promo-back' id='promoBackBtn'>&#8592;</button><h2>&#127881; " + typeLabel + " - Free Today</h2></div>" +
-      "<div class='promo-summary'>" + summary + "<br><b>Total: $0</b></div>" +
+      "<div class='promo-summary'>" + summary + "<br><b>Total: FREE</b> - no card, no payment info needed.</div>" +
       "<div id='promoCkErr'></div>" +
       "<div class='facts'>" +
       "<button class='bcan' id='promoCloseBtn'>Cancel</button>" +
