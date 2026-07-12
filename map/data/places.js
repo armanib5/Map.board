@@ -210,5 +210,19 @@ var PLACES = [
   { "id": "ar2", "cat": "cityart", "hood": "alum", "t": "Alum Rock Park Trailhead Art", "a": "Penitencia Creek Rd, San Jose, CA", "lat": 37.3798, "lng": -121.7995, "ds": "Public art near the Alum Rock Park entrance." },
   { "id": "es1", "cat": "market", "hood": "east", "t": "Story Road Market", "a": "Story Rd, San Jose, CA", "lat": 37.3444, "lng": -121.8394, "ds": "Community market along Story Road." },
   { "id": "es2", "cat": "cityart", "hood": "east", "t": "East Side Community Mural", "a": "King Rd, San Jose, CA", "lat": 37.3465, "lng": -121.8362, "ds": "Community mural celebrating East San Jose." },
-  { "id": "u1783435013531", "cat": "restaurants", "hood": "downtown", "t": "Eos & Nyx", "a": "201 S Second St #120, San Jose, CA 95113", "lat": 37.3332, "lng": -121.8872, "w": "tue-fri 5pm-9pm", "sh": 17, "eh": 21, "wb": "https://www.eosnyxsj.com/", "ds": "" }
+  { "id": "u1783435013531", "cat": "restaurants", "hood": "downtown", "t": "Eos & Nyx", "a": "201 S Second St #120, San Jose, CA 95113", "lat": 37.3332, "lng": -121.8872, "w": "tue-fri 5pm-9pm", "sh": 17, "eh": 21, "wb": "https://www.eosnyxsj.com/", "ds": "" },
+  {
+    "id": "u1783885081451", "cat": "holiday", "hood": "downtown",
+    "t": "Mariachi Festival", "w": "Today 1pm - 8pm", "d": "2026-07-12", "sh": 13, "eh": 20, "ed": "2026-07-12",
+    "a": "Plaza de Cesar Chavez, San Jose, CA 95113",
+    "lat": 37.3323, "lng": -121.8897,
+    "ds": "Mariachi Festival at Plaza de Cesar Chavez, 1-8pm today - live music with vendors along the street.",
+    "wb": "https://tr.ee/6G_IJFtshX",
+    "zone": [
+      [37.332885505776645, -121.8904833386006],
+      [37.333125469382146, -121.88995105608795],
+      [37.3324186353823, -121.88950861424625],
+      [37.332231567565415, -121.88996315002443]
+    ]
+  }
 ];
