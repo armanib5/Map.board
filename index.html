@@ -19,9 +19,13 @@
   footer{margin-top:34px;font-size:11.5px;color:rgba(218,184,112,.4);}
   .ownerlink{position:fixed;top:14px;right:14px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(218,184,112,.28);display:flex;align-items:center;justify-content:center;font-size:15px;text-decoration:none;transition:border-color .2s,background .2s;}
   .ownerlink:hover{border-color:#b8860b;background:rgba(218,184,112,.08);}
+  .betatag{position:fixed;top:14px;left:14px;background:rgba(184,134,11,.18);border:1px solid rgba(218,184,112,.4);color:#dab870;font-family:'Special Elite',monospace;font-size:10.5px;letter-spacing:1px;padding:5px 10px;border-radius:12px;}
+  .feedbacklink{display:inline-block;margin-top:14px;font-size:11.5px;color:rgba(218,184,112,.6);text-decoration:underline;}
+  .feedbacklink:hover{color:#dab870;}
 </style>
 </head>
 <body>
+<div class="betatag">BETA</div>
 <a class="ownerlink" href="https://armanib5.github.io/Dashboard/" title="Owner Dashboard">&#128274;</a>
 <div class="wrap">
   <h1>📌 BayPinned</h1>
@@ -40,7 +44,11 @@
       <p>Drop a pin for your business or event &mdash; reviewed before it goes live</p>
     </a>
   </div>
-  <footer>Combined here for now &middot; each still runs standalone from its own folder</footer>
+  <footer>
+    Combined here for now &middot; each still runs standalone from its own folder<br>
+    This is a beta &mdash; things may break or change.
+    <a class="feedbacklink" href="mailto:citypinned@gmail.com?subject=BayPinned%20Feedback">Send Feedback</a>
+  </footer>
 </div>
 </body>
 </html>
