@@ -34,7 +34,7 @@ var HOODS_SJ=[
 ];
 var curHood="downtown";
 var DEF=[
-{id:"mariachi2026",cat:"holiday",lbl:"Live Festival",exp:false,
+{id:"mariachi2026",cat:"holiday",lbl:"Live Festival",exp:false,mapId:"u1783885081451",
  t:"Silicon Valley Mariachi Festival",w:"Today 1pm - 8pm",d:"2026-07-12",sh:13,eh:20,
  a:"Plaza de Cesar Chavez, San Jose, CA 95113",ph:"",wb:"https://tr.ee/6G_IJFtshX",
  ds:"Silicon Valley Mariachi Festival at Plaza de Cesar Chavez, 1-8pm today - live music with vendors along the street. Supported in part by a Cultural Affairs grant from the City of San Jose.",
@@ -594,8 +594,18 @@ function openDetail(id){
   var dloc=document.createElement("div");dloc.className="dloc";
   var dadr=document.createElement("span");dadr.className="dadr";dadr.textContent=ev.a;
   var mapBtn=document.createElement("a");mapBtn.className="ab blue";mapBtn.href=mu;mapBtn.target="_blank";mapBtn.textContent="Open in Maps";
-  var pinBtn=document.createElement("a");pinBtn.className="ab gold";pinBtn.textContent="Add to Map";
-  pinBtn.href="../pins/index.html?title="+encodeURIComponent(ev.t)+"&addr="+encodeURIComponent(ev.a)+"&cat="+encodeURIComponent(ev.cat);
+  var pinBtn=document.createElement("a");pinBtn.className="ab gold";
+  if(ev.mapId){
+    /* This event already has a real pin on our map (not a fresh
+       submission) - link straight to it instead of opening /pins/,
+       which would let someone create a duplicate pin for the same
+       event, same as happened here once already. */
+    pinBtn.textContent="Find on Our Map";
+    pinBtn.href="../map/index.html?showPlace="+encodeURIComponent(ev.mapId);
+  }else{
+    pinBtn.textContent="Add to Map";
+    pinBtn.href="../pins/index.html?title="+encodeURIComponent(ev.t)+"&addr="+encodeURIComponent(ev.a)+"&cat="+encodeURIComponent(ev.cat);
+  }
   dloc.appendChild(dadr);dloc.appendChild(mapBtn);dloc.appendChild(pinBtn);
 
   body.appendChild(rib);body.appendChild(h2);body.appendChild(dw);body.appendChild(dloc);

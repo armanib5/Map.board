@@ -533,7 +533,36 @@ function initMap() {
   document.getElementById("myLoc").onclick = locateUser;
   document.getElementById("flyerClose").onclick = hideFlyer;
   map.on("click", hideFlyer);
-  promptLocationOnLoad();
+  if (!openPlaceFromQuery()) promptLocationOnLoad();
+}
+
+/* Board's flyer detail links here with ?showPlace=<id> for events that
+   already have a real pin (see app.js's "Find on Our Map" button) -
+   opens straight to that pin instead of defaulting to the location
+   prompt, so a flyer's map button always lands on the one real pin
+   rather than ever inviting a duplicate submission. */
+function openPlaceFromQuery() {
+  var params = new URLSearchParams(location.search);
+  var id = params.get("showPlace");
+  if (!id) return false;
+  var p = PLACES.find(function (x) { return x.id === id; });
+  if (!p) return false;
+  var loc = nearestHood(p.lat, p.lng);
+  if (loc.city !== activeCity) {
+    activeCity = loc.city;
+    document.querySelectorAll(".citytab").forEach(function (x) { x.classList.toggle("on", x.dataset.cityId === activeCity); });
+    renderHoodRow();
+  }
+  var hoodObj = activeCityObj().hoods.find(function (h) { return h.id === loc.hood; });
+  if (hoodObj) {
+    activeHood = hoodObj.id;
+    document.querySelectorAll(".hoodbtn").forEach(function (x) { x.classList.toggle("on", x.dataset.hoodId === activeHood); });
+    setAreaLabel(hoodObj.l, hoodHasPlaces(hoodObj.id));
+    applyFilters();
+  }
+  flyTo(p.lat, p.lng, 18);
+  setTimeout(function () { showFlyer(p); }, 400);
+  return true;
 }
 
 document.addEventListener("DOMContentLoaded", initMap);
