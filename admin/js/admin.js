@@ -37,10 +37,22 @@ function init() {
     btn.onclick = function () {
       document.querySelectorAll(".tabbtn").forEach(function (b) { b.classList.remove("on"); });
       btn.classList.add("on");
-      renderTab(btn.dataset.tab);
+      activeTab = btn.dataset.tab;
+      renderTab(activeTab);
     };
   });
+
+  /* Live event days mean new vendors/pins show up faster than anyone
+     will remember to hit refresh - auto-recheck the tabs where that
+     actually matters. Cities/Hours/Reports have free-typing inputs or
+     change rarely, so leaving those to manual refresh avoids wiping
+     someone's in-progress edit out from under them. */
+  setInterval(function () {
+    if (["vendors", "pins", "bookings"].indexOf(activeTab) === -1) return;
+    renderTab(activeTab);
+  }, 20000);
 }
+var activeTab = "vendors";
 
 function showLogin() {
   document.getElementById("loginWrap").style.display = "block";
@@ -100,6 +112,21 @@ function renderReportsTab(el) {
   });
 }
 
+function timeAgo(iso) {
+  if (!iso) return "";
+  var sec = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (sec < 60) return "just now";
+  if (sec < 3600) return Math.floor(sec / 60) + "m ago";
+  if (sec < 86400) return Math.floor(sec / 3600) + "h ago";
+  return new Date(iso).toLocaleDateString();
+}
+function lastCheckedNote(el) {
+  var note = document.createElement("div");
+  note.style.cssText = "font-size:11px;opacity:.55;margin-bottom:10px;";
+  note.textContent = "Auto-refreshing every 20s - last checked " + new Date().toLocaleTimeString();
+  el.appendChild(note);
+}
+
 function statusFilterBarGeneric(current, options, onChange) {
   var bar = document.createElement("div"); bar.className = "tabrow"; bar.style.cssText = "margin:0 0 12px;padding:0;";
   options.forEach(function (s) {
@@ -127,6 +154,7 @@ function renderVendorsTab(el) {
   sb.from("vendors").select("*").order("created_at", { ascending: false }).then(function (res) {
     if (res.error) { el.innerHTML = "<p class='aempty'>" + res.error.message + "</p>"; return; }
     el.innerHTML = "";
+    lastCheckedNote(el);
     el.appendChild(statusFilterBar(vendorsFilter, function (s) { vendorsFilter = s; renderVendorsTab(el); }));
     var rows = vendorsFilter === "all" ? res.data : res.data.filter(function (v) { return v.status === vendorsFilter; });
     if (vendorsFilter === "pending" && rows.length > 1) {
@@ -145,7 +173,7 @@ function renderVendorsTab(el) {
     if (!rows.length) { el.appendChild(document.createTextNode("")); var p = document.createElement("p"); p.className = "aempty"; p.textContent = "No " + (vendorsFilter === "all" ? "" : vendorsFilter + " ") + "vendors."; el.appendChild(p); return; }
     rows.forEach(function (v) {
       var row = document.createElement("div"); row.className = "eventcard";
-      row.innerHTML = "<span class='etitle'>" + v.name + " <span style='opacity:.6;font-size:11px;'>(" + v.status + ")</span></span>";
+      row.innerHTML = "<span class='etitle'>" + v.name + " <span style='opacity:.6;font-size:11px;'>(" + v.status + " &middot; added " + timeAgo(v.created_at) + ")</span></span>";
       if (v.status !== "approved") {
         var approveBtn = document.createElement("button"); approveBtn.className = "abtn green"; approveBtn.textContent = "Approve";
         approveBtn.onclick = function () { sb.from("vendors").update({ status: "approved" }).eq("id", v.id).then(function (r) { if (r.error) { alert("Couldn't approve: " + r.error.message); return; } renderVendorsTab(el); }); };
@@ -166,6 +194,7 @@ function renderPinsTab(el) {
   sb.from("pins").select("*").order("created_at", { ascending: false }).then(function (res) {
     if (res.error) { el.innerHTML = "<p class='aempty'>" + res.error.message + "</p>"; return; }
     el.innerHTML = "";
+    lastCheckedNote(el);
     el.appendChild(statusFilterBar(pinsFilter, function (s) { pinsFilter = s; renderPinsTab(el); }));
     var rows = pinsFilter === "all" ? res.data : res.data.filter(function (p) { return p.status === pinsFilter; });
     if (pinsFilter === "pending" && rows.length > 1) {
@@ -185,7 +214,7 @@ function renderPinsTab(el) {
     rows.forEach(function (p) {
       var row = document.createElement("div"); row.className = "eventcard";
       row.innerHTML = "<span class='etitle'>" + (p.title || "Untitled pin") + " &middot; " + p.owner_name +
-        " <span style='opacity:.6;font-size:11px;'>(" + p.source + " / " + p.status + ")</span></span>";
+        " <span style='opacity:.6;font-size:11px;'>(" + p.source + " / " + p.status + " &middot; added " + timeAgo(p.created_at) + ")</span></span>";
       if (p.status !== "approved") {
         var approveBtn = document.createElement("button"); approveBtn.className = "abtn green"; approveBtn.textContent = "Approve";
         approveBtn.onclick = function () { sb.from("pins").update({ status: "approved" }).eq("id", p.id).then(function (r) { if (r.error) { alert("Couldn't approve: " + r.error.message); return; } renderPinsTab(el); }); };
@@ -207,10 +236,11 @@ function renderBookingsTab(el) {
     if (res.error) { el.innerHTML = "<p class='aempty'>" + res.error.message + "</p>"; return; }
     if (!res.data.length) { el.innerHTML = "<p class='aempty'>No bookings yet.</p>"; return; }
     el.innerHTML = "";
+    lastCheckedNote(el);
     res.data.forEach(function (b) {
       var row = document.createElement("div"); row.className = "eventcard";
       row.innerHTML = "<span class='etitle'>" + (b.vendors ? b.vendors.name : "?") + " &middot; " + (b.events ? b.events.title : "?") +
-        " <span style='opacity:.6;font-size:11px;'>(" + b.type + " &middot; $" + b.amount + " &middot; " + b.status + ")</span></span>";
+        " <span style='opacity:.6;font-size:11px;'>(" + b.type + " &middot; $" + b.amount + " &middot; " + b.status + " &middot; " + timeAgo(b.purchased_at) + ")</span></span>";
       if (b.status !== "cancelled") {
         var cancelBtn = document.createElement("button"); cancelBtn.className = "abtn red"; cancelBtn.textContent = "Cancel";
         cancelBtn.onclick = function () {
