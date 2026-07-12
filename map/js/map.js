@@ -154,6 +154,9 @@ function showFullDetail(id) {
 function hideFullDetail() {
   document.getElementById("detailOv").classList.remove("on");
 }
+document.getElementById("detailOv").addEventListener("click", function (e) {
+  if (e.target.id === "detailOv") hideFullDetail();
+});
 
 function addPlaceMarker(p) {
   var m = L.marker([p.lat, p.lng], { icon: pinDivIcon(p) });

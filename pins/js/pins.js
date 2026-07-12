@@ -92,12 +92,17 @@ function submitPin() {
   btn.disabled = true; btn.textContent = "Submitting…";
 
   var sb = getSupabase();
+  var eventSel = document.getElementById("pEvent");
+  var eventLabel = eventSel.options[eventSel.selectedIndex].text;
+  var note = document.getElementById("pNote").value.trim();
+  if (eventSel.value) note = "[" + eventLabel + "] " + note;
+
   sb.from("pins").insert({
     source: "vendor",
     cat_id: document.getElementById("pCat").value,
     owner_name: owner,
     title: title,
-    description: document.getElementById("pNote").value.trim(),
+    description: note,
     lat: latlng.lat,
     lng: latlng.lng,
     status: "pending"

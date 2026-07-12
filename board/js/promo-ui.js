@@ -208,6 +208,11 @@ function renderPromoCheckout() {
       btn.disabled = false; btn.textContent = "Confirm I Paid Vendor";
       return;
     }
+    /* A confirmed paid booking is proof-of-intent on its own — don't make
+       vendors wait on a manual approval to actually appear after paying
+       for a Boost/Featured slot. They still show up in the admin's
+       Bookings tab either way, so nothing goes unreviewed. */
+    if (v.status !== "approved") { v.status = "approved"; v.active = true; saveVendors(); }
     renderPromoSuccess(result.booking);
   };
 }
