@@ -349,13 +349,53 @@ function updateDashNavVisibility() {
 }
 
 /* ── Admin Dashboard tabs ── */
+
+/* Every flyer across every category board, grouped by board, newest
+   first within each group - the admin panel had no way to see all
+   flyers at all before this (only Vendors/Bookings/Pricing/Hours). */
+function renderAdminEvents() {
+  var list = document.getElementById("adminEventsList");
+  if (!list) return;
+  list.innerHTML = "";
+  if (!evts.length) { list.innerHTML = "<p class='aempty'>No flyers yet.</p>"; return; }
+
+  ORD.forEach(function (cat) {
+    var items = evts.filter(function (e) { return e.cat === cat; });
+    if (!items.length) return;
+    var groupHead = document.createElement("div");
+    groupHead.style.cssText = "font-family:'Special Elite',monospace;color:var(--cl);font-size:13px;margin:14px 0 6px;";
+    groupHead.textContent = (C[cat] ? C[cat].l : cat) + " (" + items.length + ")";
+    list.appendChild(groupHead);
+
+    items.forEach(function (ev) {
+      var row = document.createElement("div");
+      row.style.cssText = "background:rgba(253,246,224,.06);border:1px solid rgba(218,184,112,.2);border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;";
+      var live = isLiveNow(ev);
+      var name = document.createElement("div");
+      name.style.cssText = "font-family:'Special Elite',monospace;font-size:12.5px;color:var(--cl);flex:1;min-width:160px;";
+      name.innerHTML = escHtml(ev.t) + (live ? " <span style='color:#22c55e;font-weight:700;'>&#9679; LIVE</span>" : "") +
+        "<br><span style='opacity:.65;font-size:10.5px;'>" + escHtml(ev.w || "") + (ev.exp ? " &middot; expired" : "") + "</span>";
+      row.appendChild(name);
+
+      var viewBtn = document.createElement("button"); viewBtn.className = "nb"; viewBtn.textContent = "View";
+      viewBtn.onclick = function () { showBoards(); openDetail(ev.id); };
+      var editBtn = document.createElement("button"); editBtn.className = "nb"; editBtn.textContent = "Edit";
+      editBtn.onclick = function () { showBoards(); editEv(ev.id); };
+      var removeBtn = document.createElement("button"); removeBtn.className = "nb"; removeBtn.textContent = "Remove";
+      removeBtn.onclick = function () { if (confirm("Remove \"" + ev.t + "\"?")) { delEv(ev.id); renderAdminEvents(); } };
+      row.appendChild(viewBtn); row.appendChild(editBtn); row.appendChild(removeBtn);
+      list.appendChild(row);
+    });
+  });
+}
 function showAdminTab(tab) {
   document.querySelectorAll(".admintab").forEach(function (b) { b.classList.toggle("on", b.dataset.tab === tab); });
-  var panels = { vendors: "adminTabVendors", bookings: "adminTabBookings", pricing: "adminTabPricing", hours: "adminTabHours" };
+  var panels = { events: "adminTabEvents", vendors: "adminTabVendors", bookings: "adminTabBookings", pricing: "adminTabPricing", hours: "adminTabHours" };
   Object.keys(panels).forEach(function (t) {
     var el = document.getElementById(panels[t]);
     if (el) el.style.display = t === tab ? "block" : "none";
   });
+  if (tab === "events") renderAdminEvents();
   if (tab === "vendors") renderAdminList();
   if (tab === "bookings") renderAdminBookings();
   if (tab === "pricing") renderAdminPricing();

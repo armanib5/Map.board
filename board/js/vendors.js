@@ -251,7 +251,7 @@ function showAdmin() {
   document.getElementById("tdwrap").style.display = "none";
   document.getElementById("mapSec").style.display = "none";
   document.getElementById("adminSec").style.display = "block";
-  if (typeof showAdminTab === "function") showAdminTab("vendors");
+  if (typeof showAdminTab === "function") showAdminTab("events");
   else renderAdminList();
 }
 function vendorTier(v) {

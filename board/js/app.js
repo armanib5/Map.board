@@ -9,7 +9,7 @@ var C={
   holiday:{l:"Holiday",i:"&#9917;",c:"#8B0000"},
   shop:{l:"Shops",i:"&#128717;",c:"#c0392b"}
 };
-var ORD=["market","foodhall","bars","artwalk","cityart","parks","venue","holiday","shop"];
+var ORD=["holiday","market","foodhall","bars","artwalk","cityart","parks","venue","shop"];
 var CN={sj:"San Jose, CA",sc:"Santa Clara, CA",sv:"Sunnyvale, CA",mv:"Mountain View, CA",camp:"Campbell, CA"};
 var CITY_ABBR={sj:"SJ",sc:"SC",sv:"SV",mv:"MV",camp:"Camp"};
 function setBrand(v){
@@ -34,6 +34,14 @@ var HOODS_SJ=[
 ];
 var curHood="downtown";
 var DEF=[
+{id:"mariachi2026",cat:"holiday",lbl:"Live Festival",exp:false,
+ t:"Silicon Valley Mariachi Festival",w:"Today 1pm - 8pm",d:"2026-07-12",sh:13,eh:20,
+ a:"Plaza de Cesar Chavez, San Jose, CA 95113",ph:"",wb:"https://tr.ee/6G_IJFtshX",
+ ds:"Silicon Valley Mariachi Festival at Plaza de Cesar Chavez, 1-8pm today - live music with vendors along the street. Supported in part by a Cultural Affairs grant from the City of San Jose.",
+ tags:["Live Music","Festival","Tickets","Family"],photo:"img/mariachi-festival-flyer.jpg",g:[],mx:342,my:498,ed:"2026-07-12",ms:"",
+ pk:"Contact organizer.",tr:"VTA Convention Center stop, short walk.",
+ ac:"Contact organizer.",fam:"Family friendly festival.",
+ fp:"At Plaza de Cesar Chavez",fd:"See Google Maps",vg:[]},
 {id:"fm",cat:"market",lbl:"Weekly Market",exp:false,
  t:"Downtown SJ Farmers Market",w:"Wednesdays 9:00am - 1:30pm",d:"wed",
  a:"101 Paseo de San Antonio, San Jose, CA 95113",ph:"(408) 555-0100",wb:"https://downtownsanjosefarmersmarket.com",
@@ -121,15 +129,7 @@ var DEF=[
  tags:["Theater","Broadway","Concerts","Dance"],photo:"",g:[],mx:200,my:565,ed:"",ms:"",
  pk:"Adjacent garages. Convention Center garage nearby.",tr:"VTA Convention Center light rail stop 5 min walk.",
  ac:"Fully accessible large venue.",fam:"Many family-friendly shows.",
- fp:"8 min walk",fd:"15 min walk",vg:[]},
-{id:"mariachi2026",cat:"holiday",lbl:"Live Festival",exp:false,
- t:"Mariachi Festival",w:"Today 1pm - 8pm",d:"2026-07-12",sh:13,eh:20,
- a:"Plaza de Cesar Chavez, San Jose, CA 95113",ph:"",wb:"https://tr.ee/6G_IJFtshX",
- ds:"Mariachi Festival at Plaza de Cesar Chavez, 1-8pm today - live music with vendors along the street.",
- tags:["Live Music","Festival","Tickets","Family"],photo:"",g:[],mx:342,my:498,ed:"2026-07-12",ms:"",
- pk:"Contact organizer.",tr:"VTA Convention Center stop, short walk.",
- ac:"Contact organizer.",fam:"Family friendly festival.",
- fp:"At Plaza de Cesar Chavez",fd:"See Google Maps",vg:[]}
+ fp:"8 min walk",fd:"15 min walk",vg:[]}
 ];
 
 var KEY="pinnedsj-v9",evts=[],mS=1,mX=0,mY=0,pan=false,ps={x:0,y:0};
@@ -269,6 +269,20 @@ function isToday(ev){
 }
 function isWeek(ev){return!isToday(ev)&&!ev.exp&&["daily","wed","thu","fri","sat","sun","mon","tue","monthly"].indexOf(ev.d)>=0;}
 
+/* "Live now" (blinking green border, sorted first) - not just "happening
+   today" but actually inside its sh/eh hour window right now, same idea
+   as the map's isLive(). Events with no sh/eh are treated as live all day
+   once isToday() matches, same as the map's behavior. */
+function isLiveNow(ev){
+  if(ev.exp)return false;
+  if(!isToday(ev))return false;
+  if(ev.sh!=null&&ev.eh!=null){
+    var now=new Date(),h=now.getHours()+now.getMinutes()/60;
+    if(h<ev.sh||h>ev.eh)return false;
+  }
+  return true;
+}
+
 /* Each city gets its own downtown background photo. Until real photos are
    supplied for Santa Clara/Sunnyvale/Mountain View/Campbell, they fall
    back to the San Jose photo so the layer never 404s. A site owner can
@@ -380,6 +394,7 @@ function renderToday(){
   var hood=curCity==="sj"?curHood:null;
   var pool=hood?evts.filter(function(e){return(e.hood||"downtown")===hood;}):evts;
   var td=pool.filter(function(e){return isToday(e)&&!e.exp;});
+  td.sort(function(a,b){return (isLiveNow(b)?1:0)-(isLiveNow(a)?1:0);});
   var wk=pool.filter(function(e){return isWeek(e);});
   var none="<div style='color:rgba(218,184,112,.35);padding:16px;font-size:13px;'>Nothing confirmed yet</div>";
   tc.innerHTML=none;wc.innerHTML=none;
@@ -390,7 +405,7 @@ function renderToday(){
 function mkTCard(ev){
   var ico=C[ev.cat]?C[ev.cat].i:"&#128204;";
   var d=document.createElement("div");
-  d.className="tc";
+  d.className="tc"+(isLiveNow(ev)?" live-now":"");
   var imgDiv=document.createElement("div");
   imgDiv.className="tcimg";
   if(ev.photo){imgDiv.style.backgroundImage="url("+ev.photo+")";imgDiv.style.backgroundSize="cover";imgDiv.style.backgroundPosition="center";}
@@ -480,7 +495,7 @@ function mkBoard(cat,items){
   sec.appendChild(lbl);sec.appendChild(frame);
 
   var slotIdx=0;
-  items.forEach(function(ev){
+  items.slice().sort(function(a,b){return (isLiveNow(b)?1:0)-(isLiveNow(a)?1:0);}).forEach(function(ev){
     fstrip.appendChild(mkPinSlot(mkFlyer(ev),slotIdx++));
   });
 
@@ -521,7 +536,8 @@ function mkPinSlot(card,idx){
 function mkFlyer(ev){
   var ico=C[ev.cat]?C[ev.cat].i:"&#128204;";
 
-  var fc=document.createElement("div");fc.className="fc"+(ev.exp?" exp":"");
+  var live=isLiveNow(ev);
+  var fc=document.createElement("div");fc.className="fc"+(ev.exp?" exp":"")+(live?" live-now":"");
 
   var fimg=document.createElement("div");fimg.className="fimg"+(ev.photo?" hp":"");
   if(ev.photo){fimg.style.backgroundImage="url("+ev.photo+")";fimg.style.backgroundSize="cover";fimg.style.backgroundPosition="center";}
@@ -529,7 +545,6 @@ function mkFlyer(ev){
     fimg.innerHTML=ico;
     if(ev.exp){var etag=document.createElement("div");etag.className="etag";etag.textContent="Past";fimg.appendChild(etag);}
   }
-
   var fb=document.createElement("div");fb.className="fb";
   var rib=document.createElement("span");rib.className="rib "+ev.cat;rib.textContent=ev.lbl;
   var h3=document.createElement("h3");h3.textContent=ev.t;
