@@ -7,8 +7,22 @@ var vendors = [];
 var VFAV_KEY = "vendor-favs-v1";
 var VDATA_KEY = "vendors-v1";
 
+/* A device that already saved vendor data once ignores VENDOR_DEF forever
+   after that - which meant re-seeding real festival vendors here never
+   actually reached a phone (like the organizer's own) that had already
+   saved anything, even something unrelated. Merging in any seed vendor
+   whose id isn't already present fixes that without touching or
+   overwriting anything the device already has. */
 function loadVendors() {
-  vendors = Storage.get(VDATA_KEY, null) || JSON.parse(JSON.stringify(VENDOR_DEF));
+  var saved = Storage.get(VDATA_KEY, null);
+  if (!saved) { vendors = JSON.parse(JSON.stringify(VENDOR_DEF)); return; }
+  vendors = saved;
+  var existingIds = saved.map(function (v) { return v.id; });
+  var missing = VENDOR_DEF.filter(function (v) { return existingIds.indexOf(v.id) < 0; });
+  if (missing.length) {
+    vendors = vendors.concat(JSON.parse(JSON.stringify(missing)));
+    saveVendors();
+  }
 }
 function saveVendors() {
   if (!Storage.set(VDATA_KEY, vendors)) {
