@@ -18,6 +18,14 @@ var userLoc = null;
    farmers market only glows live on Wednesdays, not every day. Places with
    no `d` schedule (theaters, parking, transit, schools...) are standing
    locations rather than scheduled events, so they never show as live. */
+/* Local calendar date (YYYY-MM-DD), not UTC - toISOString() jumps to
+   tomorrow's date the moment UTC crosses midnight, which is still
+   mid-afternoon for Pacific visitors and was expiring/hiding today's
+   event hours before it actually ended locally. */
+function todayLocal() {
+  var d = new Date(), pad = function (n) { return n < 10 ? "0" + n : "" + n; };
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
 function isTodayPlace(p) {
   if (!p.d) return false;
   var d = new Date(), dn = ["sun","mon","tue","wed","thu","fri","sat"][d.getDay()];
@@ -29,7 +37,7 @@ function isTodayPlace(p) {
     while (f.getDay() !== 5) f.setDate(f.getDate() + 1);
     return d.getDate() === f.getDate();
   }
-  if (p.d.length === 10) return p.d === d.toISOString().slice(0, 10);
+  if (p.d.length === 10) return p.d === todayLocal();
   return false;
 }
 /* If a place gives an sh/eh (start hour/end hour, 24hr decimal) window -
@@ -38,7 +46,7 @@ function isTodayPlace(p) {
    day matches. Places without sh/eh (the World Cup's "all matches" span,
    for instance) stay live for the whole day. */
 function isLive(p) {
-  if (p.ed && p.ed < new Date().toISOString().slice(0, 10)) return false;
+  if (p.ed && p.ed < todayLocal()) return false;
   if (!isTodayPlace(p)) return false;
   if (p.sh != null && p.eh != null) {
     var now = new Date(), h = now.getHours() + now.getMinutes() / 60;

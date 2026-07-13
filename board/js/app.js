@@ -249,8 +249,17 @@ function save(){
   try{localStorage.setItem(KEY,JSON.stringify(evts));}
   catch(e){alert("This flyer couldn't be saved - your browser's local storage is full. Try removing an old flyer or photo, then try again.");}
 }
+/* Local calendar date (YYYY-MM-DD), not UTC - toISOString() slides to
+   tomorrow's date the moment UTC crosses midnight, which for Pacific
+   visitors is still mid-afternoon. That was silently expiring today's
+   event and dropping it out of isToday() hours before it actually
+   ended in real local time. */
+function todayLocal(){
+  var d=new Date(),pad=function(n){return n<10?"0"+n:""+n;};
+  return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+}
 function expire(){
-  var t=new Date().toISOString().slice(0,10);
+  var t=todayLocal();
   evts.forEach(function(e){if(e.ed&&e.ed<t)e.exp=true;});
 }
 function isToday(ev){
@@ -264,7 +273,7 @@ function isToday(ev){
     while(f.getDay()!==5)f.setDate(f.getDate()+1);
     return d.getDate()===f.getDate();
   }
-  if(ev.d&&ev.d.length===10)return ev.d===new Date().toISOString().slice(0,10);
+  if(ev.d&&ev.d.length===10)return ev.d===todayLocal();
   return false;
 }
 function isWeek(ev){return!isToday(ev)&&!ev.exp&&["daily","wed","thu","fri","sat","sun","mon","tue","monthly"].indexOf(ev.d)>=0;}

@@ -76,28 +76,36 @@ function toggleHourClosed(eventId, hour) {
    number, so a Wednesday market's 9am slot frees up again the following
    Wednesday instead of staying permanently booked. Mirrors app.js's
    isToday() day-matching rules. */
+/* Local calendar date (YYYY-MM-DD) - toISOString() is UTC and slides to
+   tomorrow's date hours before local midnight for anyone west of GMT,
+   which was resolving "today's" booking date to the wrong calendar day
+   for Pacific visitors in the evening. */
+function dateLocal(d) {
+  var pad = function (n) { return n < 10 ? "0" + n : "" + n; };
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
 function nextOccurrenceDate(ev) {
   var dayMap = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
   var now = new Date();
-  var todayStr = now.toISOString().slice(0, 10);
+  var todayStr = dateLocal(now);
   if (!ev.d) return todayStr;
   if (ev.d === "daily" || ev.d === "today") return todayStr;
   if (ev.d.length === 10) return ev.d;
   if (ev.d === "monthly") {
     var f = new Date(now.getFullYear(), now.getMonth(), 1);
     while (f.getDay() !== 5) f.setDate(f.getDate() + 1);
-    if (f.toISOString().slice(0, 10) < todayStr) {
+    if (dateLocal(f) < todayStr) {
       f = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       while (f.getDay() !== 5) f.setDate(f.getDate() + 1);
     }
-    return f.toISOString().slice(0, 10);
+    return dateLocal(f);
   }
   var target = dayMap[ev.d];
   if (target == null) return todayStr;
   var d = new Date(now);
   var diff = (target - d.getDay() + 7) % 7;
   d.setDate(d.getDate() + diff);
-  return d.toISOString().slice(0, 10);
+  return dateLocal(d);
 }
 
 function takenSlotsFor(eventId, date, hour, type) {
@@ -120,9 +128,7 @@ function freeSlotsFor(eventId, date, hour, type) {
    checkout is broken. */
 function isPastHour(dateStr, hour) {
   var now = new Date();
-  var pad = function (n) { return n < 10 ? "0" + n : "" + n; };
-  var todayLocal = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
-  if (dateStr !== todayLocal) return false;
+  if (dateStr !== dateLocal(now)) return false;
   return (hour + 1) <= (now.getHours() + now.getMinutes() / 60);
 }
 function hourStatus(ev, hour, type) {
